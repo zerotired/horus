@@ -29,13 +29,13 @@ def groupfinder(userid, request):
         for group in user.groups:
             groups.append('group:%s' % group.name)
 
-        groups.append('user:%s' % user.pk)
+        groups.append('user:%s' % user.id)
 
     return groups
 
 def includeme(config):
     settings = config.registry.settings
-    config.set_request_property(get_user, 'user', reify=True)
+    config.set_request_property(get_user_account, 'user_account', reify=True)
 
     config.set_root_factory(RootFactory)
 

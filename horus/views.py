@@ -60,7 +60,7 @@ def create_activation(request, user):
 
     body = pystache.render(_("Please activate your e-mail address by visiting {{ link }}"),
         {
-            'link': request.route_url('activate', user_pk=user.pk, code=user.activation.code)
+            'link': request.route_url('activate', user_pk=user.id, code=user.activation.code)
         }
     )
 
@@ -135,7 +135,7 @@ class AuthController(BaseController):
                             self.request.session.flash(_(u'Your account is not active, please check your e-mail.'), 'error')
                             return {'form': self.form.render()}
 
-                return authenticated(self.request, user.pk)
+                return authenticated(self.request, user.id)
 
             self.request.session.flash(_('Invalid username or password.'), 'error')
 
@@ -228,7 +228,7 @@ class ForgotPasswordController(BaseController):
                         return {
                             'form': form.render(
                                 appstruct=dict(
-                                    User_name=user.user_name
+                                    User_name=user.username
                                 )
                             )
                         }
@@ -293,14 +293,14 @@ class RegisterController(BaseController):
             username = captured['User_name'].lower()
             password = captured['Password']
 
-            user = self.User.get_by_user_name_or_email(self.request,
+            user = self.User.get_by_username_or_email(self.request,
                     username, email
             )
 
             autologin = asbool(self.settings.get('su.autologin', False))
 
             if user:
-                if user.user_name == username:
+                if user.username == username:
                     self.request.session.flash(_('That username is already used.'), 'error')
                 elif user.email == email:
                     self.request.session.flash(_('That e-mail is already used.'), 'error')
@@ -310,8 +310,7 @@ class RegisterController(BaseController):
             activation = None
 
             try:
-                user = self.User(user_name=username, email=email)
-                user.set_password(password)
+                user = self.User(user_name=username, email=email, password=password)
 
                 self.db.add(user)
 
@@ -336,19 +335,19 @@ class RegisterController(BaseController):
             if autologin:
                 self.db.flush()
 
-                return authenticated(self.request, user.pk)
+                return authenticated(self.request, user.id)
 
             return HTTPFound(location=self.register_redirect_view)
 
     @view_config(route_name='activate')
     def activate(self):
         code = self.request.matchdict.get('code', None)
-        user_pk = self.request.matchdict.get('user_pk', None)
+        user_id = self.request.matchdict.get('user_id', None)
 
         activation = self.Activation.get_by_code(self.request, code)
 
         if activation:
-            user = self.User.get_by_pk(self.request, user_pk)
+            user = self.User.get_by_id(self.request, user_id)
 
             if user.activation != activation:
                 return HTTPNotFound()
@@ -381,9 +380,9 @@ class ProfileController(BaseController):
 
     @view_config(route_name='profile', renderer='horus:templates/profile.mako')
     def profile(self):
-        pk = self.request.matchdict.get('user_pk', None)
+        id = self.request.matchdict.get('user_id', None)
 
-        user = self.User.get_by_pk(self.request, pk)
+        user = self.User.get_by_id(self.request, id)
 
         if not user:
             return HTTPNotFound()
@@ -399,7 +398,7 @@ class ProfileController(BaseController):
             return HTTPNotFound()
 
         if self.request.method == 'GET':
-            username = user.user_name
+            username = user.username
             email = user.email
 
             return {
@@ -416,7 +415,7 @@ class ProfileController(BaseController):
                 captured = self.form.validate(controls)
             except deform.ValidationFailure, e:
                 # We pre-populate username
-                e.cstruct['User_name'] = user.user_name
+                e.cstruct['User_name'] = user.username
                 return {'form': e.render(), 'errors': e.error.children}
 
             email = captured.get('Email', None)
@@ -425,7 +424,7 @@ class ProfileController(BaseController):
                 email_user = self.User.get_by_email(self.request, email)
 
                 if email_user:
-                    if email_user.pk != user.pk:
+                    if email_user.id != user.id:
                         self.request.session.flash(_('That e-mail is already used.'), 'error')
 
                         return HTTPFound(location=self.request.url)
@@ -435,7 +434,7 @@ class ProfileController(BaseController):
             password = captured.get('Password')
 
             if password:
-                user.set_password(password)
+                user.password = password
 
             self.request.session.flash(_('Profile successfully updated.'), 'success')
 

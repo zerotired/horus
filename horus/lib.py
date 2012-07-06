@@ -24,11 +24,13 @@ def get_session(request):
     return session
 
 def get_user(request):
-    pk = unauthenticated_userid(request)
+    userid = unauthenticated_userid(request)
     user_class = request.registry.queryUtility(IHorusUserClass)
 
-    if pk is not None:
-        return user_class.get_by_pk(request, pk)
+    if userid is not None:
+        return user_class.get_by_id(request, userid)
+
+    return None
 
 def get_class_from_config(settings, key):
     if key in settings:
