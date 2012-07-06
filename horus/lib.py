@@ -1,10 +1,11 @@
 from pyramid.security   import unauthenticated_userid
-from horus.interfaces   import IHorusSession
-from horus.interfaces   import IHorusUserClass
+from horus.forms import ProviderForm
+from horus.interfaces   import IHorusSession, IHorusUserAccountClass
 
 import hashlib
 import random
 import string
+from horus.schemas import AccountProviderSchema
 
 def generate_random_string(length):
     """Generate a generic hash key for the user to use"""
@@ -23,12 +24,12 @@ def get_session(request):
 
     return session
 
-def get_user(request):
+def get_user_account(request):
     userid = unauthenticated_userid(request)
-    user_class = request.registry.queryUtility(IHorusUserClass)
+    user_account_class = request.registry.queryUtility(IHorusUserAccountClass)
 
     if userid is not None:
-        return user_class.get_by_id(request, userid)
+        return user_account_class.get_by_id(request, userid)
 
     return None
 
@@ -138,3 +139,43 @@ def pluralize(singular):
         suffix = 's'
     plural = root + suffix
     return plural
+
+def generate_velruse_forms(request, came_from):
+    """ Generates variable form based on OpenID providers supported in
+    the CONFIG.yaml file
+    """
+    velruse_forms = []
+    providers = request.registry.settings.get('horus.velruse_providers', None)
+    schema = AccountProviderSchema().bind(request=request)
+
+
+    if providers:
+        providers = [x.strip() for x in providers.split(',')]
+        for provider in providers:
+            action = '/velruse/login/%s' % provider
+            buttons = (provider,)
+            form = ProviderForm(schema, action=action, buttons=buttons)
+            appstruct = dict(
+                end_point='%s?csrf_token=%s&next=%s' %\
+                          (request.route_url('velruse_callback'),\
+                           request.session.get_csrf_token(),
+                           came_from),\
+                csrf_token = request.session.get_csrf_token(),
+            )
+            velruse_forms.append(form.render(appstruct))
+    return velruse_forms
+
+
+def openid_from_token(token, request):
+    """ Returns the id from the OpenID Token
+    """
+    #dbsession = DBSession()
+    #auth = json.loads(dbsession.query(KeyStorage.value). \
+    #                  filter(KeyStorage.key==token).one()[0])
+    storage = request.registry.velruse_store
+    auth = storage.retrieve(token)
+    if 'profile' in auth:
+        auth['id'] = auth['profile']['accounts'][0]['userid']
+        auth['provider'] = auth['profile']['accounts'][0]['domain']
+        return auth
+    return None

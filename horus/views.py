@@ -12,8 +12,9 @@ import pystache
 
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
+import sqlahelper
 
-from horus.interfaces import IHorusUserClass
+from horus.interfaces import IHorusUserClass, IHorusUserAccountClass
 from horus.interfaces import IHorusActivationClass
 from horus.interfaces import IHorusLoginForm
 from horus.interfaces import IHorusLoginSchema
@@ -25,7 +26,7 @@ from horus.interfaces import IHorusResetPasswordForm
 from horus.interfaces import IHorusResetPasswordSchema
 from horus.interfaces import IHorusProfileForm
 from horus.interfaces import IHorusProfileSchema
-from horus.lib import get_session
+from horus.lib import get_session, generate_velruse_forms, openid_from_token
 from horus.events import NewRegistrationEvent
 from horus.events import RegistrationActivatedEvent
 from horus.events import PasswordResetEvent
@@ -82,6 +83,7 @@ class BaseController(object):
         self._request  = request
         self.settings = request.registry.settings
         self.User = request.registry.getUtility(IHorusUserClass)
+        self.UserAccount = request.registry.getUtility(IHorusUserAccountClass)
         self.Activation = request.registry.getUtility(IHorusActivationClass)
         self.db = get_session(request)
 
@@ -100,15 +102,16 @@ class AuthController(BaseController):
         self.allow_inactive_login = asbool(self.settings.get('su.allow_inactive_login', False))
 
         self.form = form(self.schema)
+        self.velruse_forms = generate_velruse_forms(request, self.login_redirect_view)
 
 
     @view_config(route_name='login', renderer='horus:templates/login.mako')
     def login(self):
         if self.request.method == 'GET':
-            if self.request.user:
+            if self.request.user_account:
                 return HTTPFound(location=self.login_redirect_view)
 
-            return {'form': self.form.render()}
+            return {'form': self.form.render(), 'velruse_forms': self.velruse_forms}
         elif self.request.method == 'POST':
             try:
                 controls = self.request.POST.items()
@@ -121,21 +124,21 @@ class AuthController(BaseController):
 
             allow_email_auth = self.settings.get('su.allow_email_auth', False)
 
-            user = self.User.get_user(self.request, username, password)
+            user_account = self.UserAccount.get_account(self.request, username, password)
 
             if allow_email_auth:
-                if not user:
-                    user = self.User.get_by_email_password(username,
+                if not user_account:
+                    user_account = self.UserAccount.get_by_email_password(username,
                             password)
 
-            if user:
+            if user_account:
                 if not self.allow_inactive_login:
                     if self.require_activation:
-                        if not user.is_activated:
+                        if not user_account.is_activated:
                             self.request.session.flash(_(u'Your account is not active, please check your e-mail.'), 'error')
                             return {'form': self.form.render()}
 
-                return authenticated(self.request, user.id)
+                return authenticated(self.request, user_account.id)
 
             self.request.session.flash(_('Invalid username or password.'), 'error')
 
@@ -153,6 +156,36 @@ class AuthController(BaseController):
 
         return HTTPFound(location=self.logout_redirect_view, headers=headers)
 
+    @view_config(route_name='velruse_callback')
+    def velruse_callback(self):
+        """
+        no return value, called with route_url('oauth_callback', request)
+
+        This is the URL that Velruse returns an OpenID request to
+        """
+        redir = self.request.GET.get('next', self.login_redirect_view)
+        headers = []
+
+        if 'token' in self.request.POST:
+            auth = openid_from_token(self.request.POST['token'], self.request)
+            if auth:
+                auth_info = auth['profile']['accounts'][0]
+                user_account = self.UserAccount.get_by_openid(self.request, auth_info['userid'], auth_info['domain'])
+                if not user_account:
+                    DBSession = sqlahelper.get_session()
+                    user = self.User()
+                    DBSession.add(user)
+                    user_account = self.UserAccount(
+                        username=auth_info['username'],
+                        openid=auth_info['userid'],
+                        provider=auth_info['domain'],
+                    )
+                    if auth['profile'].has_key('verifiedEmail'):
+                        user_account.email = auth['profile']['verifiedEmail']
+                    user.accounts.append(user_account)
+                    DBSession.flush()
+                return authenticated(self.request, user_account.id)
+        return HTTPFound(location=redir, headers=headers)
 
 class ForgotPasswordController(BaseController):
     def __init__(self, request):
@@ -184,7 +217,7 @@ class ForgotPasswordController(BaseController):
 
             email = captured['Email']
 
-            user = self.User.get_by_email(self.request, email)
+            user = self.UserAccount.get_by_email(self.request, email)
             activation = self.Activation()
             self.db.add(activation)
 
@@ -221,7 +254,7 @@ class ForgotPasswordController(BaseController):
         activation = self.Activation.get_by_code(self.request, code)
 
         if activation:
-            user = self.User.get_by_activation(self.request, activation)
+            user = self.UserAccount.get_by_activation(self.request, activation)
 
             if user:
                 if self.request.method == 'GET':
@@ -293,16 +326,16 @@ class RegisterController(BaseController):
             username = captured['User_name'].lower()
             password = captured['Password']
 
-            user = self.User.get_by_username_or_email(self.request,
+            user_account = self.UserAccount.get_by_username_or_email(self.request,
                     username, email
             )
 
             autologin = asbool(self.settings.get('su.autologin', False))
 
-            if user:
-                if user.username == username:
+            if user_account:
+                if user_account.username == username:
                     self.request.session.flash(_('That username is already used.'), 'error')
-                elif user.email == email:
+                elif user_account.email == email:
                     self.request.session.flash(_('That e-mail is already used.'), 'error')
 
                 return {'form': self.form.render(self.request.POST)}
@@ -310,13 +343,14 @@ class RegisterController(BaseController):
             activation = None
 
             try:
-                user = self.User(user_name=username, email=email, password=password)
+                user_account = self.UserAccount(user_name=username, email=email)
+                user_account.set_password(password)
 
-                self.db.add(user)
+                self.db.add(user_account)
 
                 if self.require_activation:
                     # SEND EMAIL ACTIVATION
-                    create_activation(self.request, user)
+                    create_activation(self.request, user_account)
                     self.request.session.flash(_('Please check your E-mail for an activation link'), 'success')
                 else:
                     if not autologin:
@@ -327,7 +361,7 @@ class RegisterController(BaseController):
                 return {'form': self.form.render()}
 
             self.request.registry.notify(
-                NewRegistrationEvent(self.request, user, activation,
+                NewRegistrationEvent(self.request, user_account, activation,
                     captured)
             )
 
@@ -335,19 +369,19 @@ class RegisterController(BaseController):
             if autologin:
                 self.db.flush()
 
-                return authenticated(self.request, user.id)
+                return authenticated(self.request, user_account.id)
 
             return HTTPFound(location=self.register_redirect_view)
 
     @view_config(route_name='activate')
     def activate(self):
         code = self.request.matchdict.get('code', None)
-        user_id = self.request.matchdict.get('user_id', None)
+        user_pk = self.request.matchdict.get('user_pk', None)
 
         activation = self.Activation.get_by_code(self.request, code)
 
         if activation:
-            user = self.User.get_by_id(self.request, user_id)
+            user = self.UserAccount.get_by_id(self.request, user_pk)
 
             if user.activation != activation:
                 return HTTPNotFound()
@@ -380,9 +414,9 @@ class ProfileController(BaseController):
 
     @view_config(route_name='profile', renderer='horus:templates/profile.mako')
     def profile(self):
-        id = self.request.matchdict.get('user_id', None)
+        pk = self.request.matchdict.get('user_account_id', None)
 
-        user = self.User.get_by_id(self.request, id)
+        user = self.UserAccount.get_by_id(self.request, pk)
 
         if not user:
             return HTTPNotFound()
@@ -421,7 +455,7 @@ class ProfileController(BaseController):
             email = captured.get('Email', None)
 
             if email:
-                email_user = self.User.get_by_email(self.request, email)
+                email_user = self.UserAccount.get_by_email(self.request, email)
 
                 if email_user:
                     if email_user.id != user.id:

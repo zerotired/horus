@@ -41,3 +41,13 @@ class ProfileSchema(CSRFSchema):
         validator=colander.Length(min=2),
         widget=deform.widget.CheckedPasswordWidget(),
         missing=colander.null)
+
+class AccountProviderSchema(colander.Schema):
+    end_point = colander.SchemaNode(
+        colander.String(),
+        widget = deform.widget.HiddenWidget(),
+    )
+    csrf_token = colander.SchemaNode(
+        colander.String(),
+        widget = deform.widget.HiddenWidget(),
+    )

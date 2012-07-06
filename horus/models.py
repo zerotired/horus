@@ -7,6 +7,9 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy                 import or_
 from sqlalchemy                 import func
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import backref
+from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy.sql.expression import and_
 
 from horus.lib                  import generate_random_string
 from horus.lib                  import get_session
@@ -122,14 +125,81 @@ class ActivationMixin(BaseModel):
 
 class UserMixin(BaseModel):
     @declared_attr
+    def display_name(self):
+        """ Display name """
+        return sa.Column(sa.Unicode(80), default=u'')
+
+    @declared_attr
+    def active(self):
+        """ Is active """
+        return sa.Column(sa.Boolean, default=True)
+
+    @declared_attr
+    def accounts(self):
+        """ Relationship for accounts belonging to this user """
+        return sa.orm.relationship(
+            'UserAccount',
+            cascade="all,delete-orphan",
+            passive_deletes=True,
+            passive_updates=True,
+            backref=backref(UserMixin.__tablename__.rstrip('s'), lazy="joined")
+        )
+
+    def get_account(self, request, provider=None):
+        """ Return an account of the user """
+        session = get_session(request)
+
+        if provider is None:
+            """ Return the first one found """
+            return session.query(UserAccountMixin).filter(
+                and_(
+                    UserAccountMixin.user_id == self.id,
+                )
+            ).first()
+
+        else:
+            """ Return a specified one """
+            return session.query(UserAccountMixin).filter(
+                and_(
+                    UserAccountMixin.user_id == self.id,
+                    func.lower(UserAccountMixin.provider) == provider.lower(),
+                )
+            ).first()
+
+class UserAccountMixin(BaseModel):
+
+    __table_args__ = (
+        UniqueConstraint('username', 'provider'),
+        UniqueConstraint('openid', 'provider'),
+        BaseModel.__table_args__
+    )
+
+    @declared_attr
+    def user_id(self):
+        return sa.Column(
+            sa.Integer,
+            sa.ForeignKey('%s.id' % UserMixin.__tablename__)
+        )
+
+    @declared_attr
     def username(self):
-        """ Unique username """
+        """ Username, unique constraint with `provider` """
         return sa.Column(sa.Unicode(30), nullable=False, index=True)
+
+    @declared_attr
+    def openid(self):
+        """ Openid, unique constraint with `provider` """
+        return sa.Column(sa.Integer, nullable=True, index=True)
+
+    @declared_attr
+    def provider(self):
+        """ Account provider ('local' or eg. 'facebook')"""
+        return sa.Column(sa.Unicode(80), default=u'local', nullable=False, index=True)
 
     @declared_attr
     def email(self):
         """ E-mail for user """
-        return sa.Column(sa.Unicode(100), nullable=False, unique=True)
+        return sa.Column(sa.Unicode(100), nullable=True, unique=True)
 
     @declared_attr
     def status(self):
@@ -164,12 +234,12 @@ class UserMixin(BaseModel):
     @declared_attr
     def salt(self):
         """ Password salt for user """
-        return sa.Column(sa.Unicode(256), nullable=False)
+        return sa.Column(sa.Unicode(256), nullable=True)
 
     @declared_attr
     def _password(self):
         """ Password hash for user object """
-        return sa.Column('password', sa.Unicode(256), nullable=False)
+        return sa.Column('password', sa.Unicode(256), nullable=True)
 
     @hybrid_property
     def password(self):
@@ -226,7 +296,10 @@ class UserMixin(BaseModel):
         session = get_session(request)
 
         return session.query(cls).filter(
-            func.lower(cls.email) == email.lower()
+            and_(
+                func.lower(cls.email) == email.lower(),
+                cls.provider == u'local',
+            )
         ).first()
 
     @classmethod
@@ -234,7 +307,21 @@ class UserMixin(BaseModel):
         session = get_session(request)
 
         return session.query(cls).filter(
-            func.lower(cls.username) == username.lower()
+            and_(
+                func.lower(cls.username) == username.lower(),
+                cls.provider == u'local',
+            )
+        ).first()
+
+    @classmethod
+    def get_by_openid(cls, request, openid, provider):
+        session = get_session(request)
+
+        return session.query(cls).filter(
+            and_(
+                cls.openid == openid,
+                cls.provider == provider,
+            )
         ).first()
 
     @classmethod
@@ -242,9 +329,12 @@ class UserMixin(BaseModel):
         session = get_session(request)
 
         return session.query(cls).filter(
-            or_(
-                func.lower(cls.username) == username.lower(),
-                cls.email == email
+            and_(
+                or_(
+                    func.lower(cls.username) == username.lower(),
+                    cls.email == email
+                ),
+                cls.provider == u'local',
             )
         ).first()
 
@@ -265,7 +355,7 @@ class UserMixin(BaseModel):
         return user
 
     @classmethod
-    def get_user(cls, request, username, password):
+    def get_account(cls, request, username, password):
         user = cls.get_by_username(request, username)
 
         valid = cls.validate_user(user, password)
@@ -286,12 +376,14 @@ class UserMixin(BaseModel):
         return valid
 
     def __repr__(self):
-        return '<User: %s>' % self.username
+        display_name = self.openid and '%s:%i' % (self.provider, self.openid) \
+                            or self.username
+        return '<UserAccount: %s>' % display_name
 
     @property
     def __acl__(self):
         return [
-                (Allow, 'user:%s' % self.id, 'access_user')
+                (Allow, 'useraccount:%s' % self.id, 'access_user')
         ]
 
 class GroupMixin(BaseModel):

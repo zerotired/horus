@@ -5,7 +5,7 @@ from horus.schemas      import ResetPasswordSchema
 from horus.schemas      import ProfileSchema
 from horus.forms        import SubmitForm
 from horus.resources    import RootFactory
-from horus.interfaces   import IHorusUserClass
+from horus.interfaces   import IHorusUserClass, IHorusUserAccountClass
 from horus.interfaces   import IHorusActivationClass
 from horus.interfaces   import IHorusLoginForm
 from horus.interfaces   import IHorusLoginSchema
@@ -18,18 +18,20 @@ from horus.interfaces   import IHorusResetPasswordSchema
 from horus.interfaces   import IHorusProfileForm
 from horus.interfaces   import IHorusProfileSchema
 from horus.routes       import build_routes
-from horus.lib          import get_user
+from horus.lib          import get_user_account
 from horus.lib          import get_class_from_config
 
 def groupfinder(userid, request):
-    user = request.user
+    user_account = request.user_account
+    #user_account = get_user_account(request, userid)
     groups = []
 
-    if user:
-        for group in user.groups:
+    if user_account:
+        request.user_account = user_account
+        for group in user_account.user.groups:
             groups.append('group:%s' % group.name)
 
-        groups.append('user:%s' % user.id)
+        groups.append('useraccount:%s' % user_account.id)
 
     return groups
 
@@ -43,6 +45,10 @@ def includeme(config):
     if not config.registry.queryUtility(IHorusUserClass):
         user_class = get_class_from_config(settings, 'horus.user_class')
         config.registry.registerUtility(user_class, IHorusUserClass)
+
+    if not config.registry.queryUtility(IHorusUserAccountClass):
+        user_account_class = get_class_from_config(settings, 'horus.user_account_class')
+        config.registry.registerUtility(user_account_class, IHorusUserAccountClass)
 
     if not config.registry.queryUtility(IHorusActivationClass):
         activation_class = get_class_from_config(settings,
