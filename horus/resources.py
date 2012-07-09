@@ -28,8 +28,6 @@ class UserAccountFactory(RootFactory):
         self.UserAccount = request.registry.getUtility(IHorusUserAccountClass)
 
     def __getitem__(self, key):
-        #user_account = self.request.user_account
-        #if int(key) != user_account.id:
         user_account = self.UserAccount.get_by_id(self.request, key)
 
         if user_account:
