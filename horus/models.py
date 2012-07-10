@@ -8,9 +8,9 @@ from sqlalchemy                 import or_
 from sqlalchemy                 import func
 from sqlalchemy.ext.hybrid import hybrid_property
 
-from horus.lib                  import generate_random_string
-from horus.lib                  import get_session
-from horus.lib                  import pluralize
+from hem.text                   import generate_random_string
+from hem.text                   import pluralize
+from hem.db                     import get_session
 
 import cryptacular.bcrypt
 import re
@@ -28,9 +28,8 @@ class BaseModel(object):
     primary key column.
     """
     __table_args__ = {
-        'sqlite_autoincrement': True,
-        'mysql_engine': 'InnoDB',
-        'mysql_charset': 'utf8'
+        'mysql_engine': 'InnoDB'
+        , 'mysql_charset': 'utf8'
     }
 
     @declared_attr
@@ -44,7 +43,9 @@ class BaseModel(object):
             re.sub(r'([A-Z])', lambda m:"_" + m.group(0).lower(), name[1:])
         ))
 
-    id =  sa.Column(sa.Integer, autoincrement=True, primary_key=True)
+    @declared_attr
+    def id(self):
+        return sa.Column(sa.Integer, autoincrement=True, primary_key=True)
 
     def __json__(self):
         """Converts all the properties of the object into a dict
@@ -64,10 +65,22 @@ class BaseModel(object):
         return props
 
     @classmethod
-    def get_all(cls, request):
+    def get_all(cls, request, page=None, limit=None):
+        """ Gets all records of the specific item with option page and
+        limits
+        """
         session = get_session(request)
 
-        return session.query(cls).all()
+        query = session.query(cls)
+
+        if limit:
+            query = query.limit(limit)
+
+        if page and limit:
+            offset = (page - 1) * limit
+            query = query.offset(offset)
+
+        return query
 
     @classmethod
     def get_by_id(cls, request, id):

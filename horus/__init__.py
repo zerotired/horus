@@ -17,11 +17,10 @@ from horus.interfaces   import IHorusResetPasswordForm
 from horus.interfaces   import IHorusResetPasswordSchema
 from horus.interfaces   import IHorusProfileForm
 from horus.interfaces   import IHorusProfileSchema
-from horus.routes       import build_routes
 from horus.lib          import get_user
-from horus.lib          import get_class_from_config
+from hem.config         import get_class_from_config
 
-def groupfinder(userid, request):
+def groupfinder(request):
     user = request.user
     groups = []
 
@@ -35,7 +34,7 @@ def groupfinder(userid, request):
 
 def includeme(config):
     settings = config.registry.settings
-    config.set_request_property(get_user_account, 'user_account', reify=True)
+    config.set_request_property(get_user, 'user', reify=True)
 
     config.set_root_factory(RootFactory)
 
@@ -72,5 +71,5 @@ def includeme(config):
         if not config.registry.queryUtility(form):
             config.registry.registerUtility(SubmitForm, form)
 
-    config.include(build_routes)
-    config.scan('horus')
+    config.include('horus.routes')
+    config.scan()
