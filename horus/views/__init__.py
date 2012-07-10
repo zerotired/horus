@@ -160,7 +160,7 @@ class AuthController(BaseController):
 
         return HTTPFound(location=self.logout_redirect_view, headers=headers)
 
-    @view_config(route_name='velruse_callback')
+    @view_config(route_name='horus_velruse_callback')
     def velruse_callback(self):
         """
         no return value, called with route_url('oauth_callback', request)
