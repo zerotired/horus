@@ -1,7 +1,6 @@
 from horus.views            import BaseController
 from horus.schemas          import AdminUserSchema
 from horus.forms            import HorusForm
-from horus.interfaces       import IHorusUserClass
 from pyramid.view           import view_config
 from pyramid.httpexceptions import HTTPFound
 from pyramid.i18n           import TranslationStringFactory
@@ -30,11 +29,10 @@ class AdminController(BaseController):
                 return dict(form=e, errors=e.error.children)
 
             user = self.User(
-                    user_name=captured['User_name'],
-                    email=captured['Email']
+                    username=captured['User_name'],
+                    email=captured['Email'],
+                    password=captured['Password']
             )
-
-            user.set_password(captured['Password'])
 
             self.db.add(user)
 
