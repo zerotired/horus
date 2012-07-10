@@ -20,7 +20,7 @@ from horus.interfaces   import IHorusProfileSchema
 from horus.lib          import get_user_account
 from hem.config         import get_class_from_config
 
-def groupfinder(request):
+def groupfinder(userid, request):
     user_account = request.user_account
     groups = []
 
