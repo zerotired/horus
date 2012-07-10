@@ -17,7 +17,6 @@ from horus.interfaces   import IHorusResetPasswordForm
 from horus.interfaces   import IHorusResetPasswordSchema
 from horus.interfaces   import IHorusProfileForm
 from horus.interfaces   import IHorusProfileSchema
-from horus.routes       import build_routes
 from horus.lib          import get_user_account
 from hem.config         import get_class_from_config
 
