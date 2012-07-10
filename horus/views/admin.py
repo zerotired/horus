@@ -28,15 +28,17 @@ class AdminController(BaseController):
             except deform.ValidationFailure, e:
                 return dict(form=e, errors=e.error.children)
 
-            user = self.User(
+            user = self.User()
+            user_account = self.UserAccount(
                     username=captured['User_name'],
                     email=captured['Email'],
                     password=captured['Password']
             )
+            user.accounts.append(user_account)
 
             self.db.add(user)
 
-            self.request.session.flash(_(u'The user was created'), 'success')
+            self.request.session.flash(_(u'The user account was created'), 'success')
 
             return HTTPFound(
                 location=self.request.route_url('horus_admin_users_list')
@@ -47,4 +49,4 @@ class AdminController(BaseController):
             renderer='horus:templates/admin/users_list.mako'
     )
     def list(self):
-        return dict(users=self.User.get_all(self.request))
+        return dict(users=self.UserAccount.get_all(self.request))
