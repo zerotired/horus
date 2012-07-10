@@ -19,15 +19,13 @@ from horus.interfaces   import IHorusProfileForm
 from horus.interfaces   import IHorusProfileSchema
 from horus.routes       import build_routes
 from horus.lib          import get_user_account
-from horus.lib          import get_class_from_config
+from hem.config         import get_class_from_config
 
-def groupfinder(userid, request):
+def groupfinder(request):
     user_account = request.user_account
-    #user_account = get_user_account(request, userid)
     groups = []
 
     if user_account:
-        request.user_account = user_account
         for group in user_account.user.groups:
             groups.append('group:%s' % group.name)
 
@@ -78,5 +76,5 @@ def includeme(config):
         if not config.registry.queryUtility(form):
             config.registry.registerUtility(SubmitForm, form)
 
-    config.include(build_routes)
-    config.scan('horus')
+    config.include('horus.routes')
+    config.scan()

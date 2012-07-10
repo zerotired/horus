@@ -42,6 +42,18 @@ class ProfileSchema(CSRFSchema):
         widget=deform.widget.CheckedPasswordWidget(),
         missing=colander.null)
 
+class AdminUserSchema(CSRFSchema):
+    User_name = colander.SchemaNode(colander.String())
+    Email = colander.SchemaNode(
+        colander.String(),
+        validator=colander.Email()
+    )
+    Password = colander.SchemaNode(colander.String(),
+        validator=colander.Length(min=2),
+        widget=deform.widget.CheckedPasswordWidget(),
+        missing=colander.null
+    )
+
 class AccountProviderSchema(colander.Schema):
     end_point = colander.SchemaNode(
         colander.String(),
