@@ -43,9 +43,6 @@ def generate_velruse_forms(request, came_from):
 def openid_from_token(token, request):
     """ Returns the id from the OpenID Token
     """
-    #dbsession = DBSession()
-    #auth = json.loads(dbsession.query(KeyStorage.value). \
-    #                  filter(KeyStorage.key==token).one()[0])
     storage = request.registry.velruse_store
     auth = storage.retrieve(token)
     if 'profile' in auth:
