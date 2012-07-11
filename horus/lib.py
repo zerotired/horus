@@ -31,7 +31,7 @@ def generate_velruse_forms(request, came_from):
             form = ProviderForm(schema, action=action, buttons=buttons)
             appstruct = dict(
                 end_point='%s?csrf_token=%s&next=%s' %\
-                          (request.route_url('velruse_callback'),\
+                          (request.route_url('horus_velruse_callback'),\
                            request.session.get_csrf_token(),
                            came_from),\
                 csrf_token = request.session.get_csrf_token(),
