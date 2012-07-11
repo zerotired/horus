@@ -174,14 +174,17 @@ class AuthController(BaseController):
             auth = openid_from_token(self.request.POST['token'], self.request)
             if auth:
                 auth_info = auth['profile']['accounts'][0]
-                user_account = self.UserAccount.get_by_openid(self.request, auth_info['userid'], auth_info['domain'])
+                username = auth_info.get('username',
+                                        auth['profile'].get('preferredUsername',
+                                                            auth['profile'].get('displayName')))
+                user_account = self.UserAccount.get_by_openid(self.request, int(auth_info['userid']), auth_info['domain'])
                 if not user_account:
                     DBSession = sqlahelper.get_session()
-                    user = self.User()
+                    user = self.User(display_name=auth['profile'].get('displayName', u''))
                     DBSession.add(user)
                     user_account = self.UserAccount(
-                        username=auth_info['username'],
-                        openid=auth_info['userid'],
+                        username=username,
+                        openid=int(auth_info['userid']),
                         provider=auth_info['domain'],
                     )
                     if auth['profile'].has_key('verifiedEmail'):
