@@ -1,3 +1,4 @@
+from anykeystore.store import create_store_from_settings
 from horus.schemas      import LoginSchema
 from horus.schemas      import RegisterSchema
 from horus.schemas      import ForgotPasswordSchema
@@ -17,6 +18,7 @@ from horus.interfaces   import IHorusResetPasswordForm
 from horus.interfaces   import IHorusResetPasswordSchema
 from horus.interfaces   import IHorusProfileForm
 from horus.interfaces   import IHorusProfileSchema
+from horus.interfaces   import IHorusVelruseStore
 from horus.lib          import get_user_account
 from hem.config         import get_class_from_config
 
@@ -53,6 +55,13 @@ def includeme(config):
         config.registry.registerUtility(activation_class,
                 IHorusActivationClass)
 
+    if not config.registry.queryUtility(IHorusVelruseStore):
+        # setup velruse token storage
+        storage_string = settings.get('horus.velruse.store', 'memory')
+        settings['horus.velruse.store.store'] = storage_string
+        velruse_store = create_store_from_settings(settings, prefix='horus.velruse.store.')
+        config.registry.registerUtility(velruse_store,
+            IHorusVelruseStore)
 
     schemas = [
         (IHorusLoginSchema, LoginSchema),

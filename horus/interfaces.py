@@ -38,3 +38,6 @@ class IHorusProfileForm(Interface):
 
 class IHorusProfileSchema(Interface):
     pass
+
+class IHorusVelruseStore(Interface):
+    pass

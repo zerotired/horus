@@ -1,6 +1,8 @@
+from anykeystore.store import create_store_from_settings
 from pyramid.security   import unauthenticated_userid
 from horus.forms        import ProviderForm
 from horus.interfaces   import IHorusUserAccountClass
+from horus.interfaces   import IHorusVelruseStore
 from horus.schemas      import AccountProviderSchema
 
 
@@ -19,7 +21,7 @@ def generate_velruse_forms(request, came_from):
     the CONFIG.yaml file
     """
     velruse_forms = []
-    providers = request.registry.settings.get('horus.velruse_providers', None)
+    providers = request.registry.settings.get('horus.velruse.providers', None)
     schema = AccountProviderSchema().bind(request=request)
 
 
@@ -43,7 +45,7 @@ def generate_velruse_forms(request, came_from):
 def openid_from_token(token, request):
     """ Returns the id from the OpenID Token
     """
-    storage = request.registry.velruse_store
+    storage = request.registry.queryUtility(IHorusVelruseStore)
     auth = storage.retrieve(token)
     if 'profile' in auth:
         auth['id'] = auth['profile']['accounts'][0]['userid']
