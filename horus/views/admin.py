@@ -29,7 +29,7 @@ class AdminController(BaseController):
                 return dict(form=e, errors=e.error.children)
 
             user = self.User(
-                    username=captured['User_name'],
+                    username=captured['Username'],
                     email=captured['Email'],
                     password=captured['Password']
             )
