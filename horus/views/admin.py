@@ -30,7 +30,7 @@ class AdminController(BaseController):
 
             user = self.User()
             user_account = self.UserAccount(
-                    username=captured['User_name'],
+                    username=captured['Username'],
                     email=captured['Email'],
                     password=captured['Password']
             )

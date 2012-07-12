@@ -123,7 +123,7 @@ class AuthController(BaseController):
             except deform.ValidationFailure, e:
                 return {'form': e.render(), 'errors': e.error.children}
 
-            username = captured['User_name']
+            username = captured['Username']
             password = captured['Password']
 
             allow_email_auth = self.settings.get('horus.allow_email_auth', False)
@@ -268,7 +268,7 @@ class ForgotPasswordController(BaseController):
                         return {
                             'form': form.render(
                                 appstruct=dict(
-                                    User_name=user.username
+                                    Username=user.username
                                 )
                             )
                         }
@@ -330,7 +330,7 @@ class RegisterController(BaseController):
                 return {'form': e.render(), 'errors': e.error.children}
 
             email = captured['Email']
-            username = captured['User_name'].lower()
+            username = captured['Username'].lower()
             password = captured['Password']
 
             user_account = self.UserAccount.get_by_username_or_email(self.request,
@@ -445,7 +445,7 @@ class ProfileController(BaseController):
             return {
                     'form': self.form.render(
                         appstruct= dict(
-                            User_name=username,
+                            Username=username,
                             Email=email if email else '',
                         )
                     )
@@ -456,7 +456,7 @@ class ProfileController(BaseController):
                 captured = self.form.validate(controls)
             except deform.ValidationFailure, e:
                 # We pre-populate username
-                e.cstruct['User_name'] = user.username
+                e.cstruct['Username'] = user.username
                 return {'form': e.render(), 'errors': e.error.children}
 
             email = captured.get('Email', None)

@@ -97,7 +97,7 @@ class TestAuthController(UnitTestBase):
 
         assert errors[0].node.name == u'csrf_token'
         assert errors[0].msg == u'Required'
-        assert errors[1].node.name == u'User_name'
+        assert errors[1].node.name == u'Username'
         assert errors[1].msg == u'Required'
         assert errors[2].node.name == u'Password'
         assert errors[2].msg == u'Required'
@@ -147,7 +147,7 @@ class TestAuthController(UnitTestBase):
 
         request = self.get_csrf_request(post={
                 'submit': True,
-                'User_name': 'admin',
+                'Username': 'admin',
                 'Password': 'test123',
             }, request_method='POST')
 
@@ -182,7 +182,7 @@ class TestAuthController(UnitTestBase):
 
         request = self.get_csrf_request(post={
                 'submit': True,
-                'User_name': 'sontek',
+                'Username': 'sontek',
                 'Password': 'foo',
             }, request_method='POST')
 
@@ -212,7 +212,7 @@ class TestAuthController(UnitTestBase):
 
         request = self.get_csrf_request(post={
                 'submit': True,
-                'User_name': 'sontek',
+                'Username': 'sontek',
                 'Password': 'foo',
             }, request_method='POST')
 
@@ -390,7 +390,7 @@ class TestRegisterController(UnitTestBase):
         self.config.add_route('index', '/')
 
         request = self.get_csrf_request(post={
-            'User_name': 'admin',
+            'Username': 'admin',
             'Password': {
                 'Password': 'test123',
                 'Password-confirm': 'test123',
@@ -457,7 +457,7 @@ class TestRegisterController(UnitTestBase):
         self.session.flush()
 
         request = self.get_csrf_request(post={
-            'User_name': 'sontek',
+            'Username': 'sontek',
             'Password': {
                 'Password': 'test123',
                 'Password-confirm': 'test123',
@@ -502,7 +502,7 @@ class TestRegisterController(UnitTestBase):
 
 
         request = self.get_csrf_request(post={
-            'User_name': 'admin',
+            'Username': 'admin',
             'Password': {
                 'Password': 'test123',
                 'Password-confirm': 'test123',
@@ -548,7 +548,7 @@ class TestRegisterController(UnitTestBase):
         self.config.add_route('index', '/')
 
         request = self.get_csrf_request(post={
-            'User_name': 'admin',
+            'Username': 'admin',
             'Password': {
                 'Password': 'test123',
                 'Password-confirm': 'test123',

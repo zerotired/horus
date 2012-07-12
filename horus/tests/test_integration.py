@@ -51,7 +51,7 @@ class TestViews(IntegrationTestBase):
         res = self.app.post('/login', 
             {
                 'submit': True,
-                'User_name': 'sontek',
+                'Username': 'sontek',
                 'Password': 'temp',
                 'csrf_token': csrf
             }
@@ -76,7 +76,7 @@ class TestViews(IntegrationTestBase):
         res = self.app.post('/login', 
             {
                 'submit': True,
-                'User_name': 'sontek',
+                'Username': 'sontek',
                 'Password': 'temp',
                 'csrf_token': csrf
             }
