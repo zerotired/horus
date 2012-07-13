@@ -46,7 +46,10 @@ def openid_from_token(token, request):
     """ Returns the id from the OpenID Token
     """
     storage = request.registry.queryUtility(IHorusVelruseStore)
-    auth = storage.retrieve(token)
+    try:
+        auth = storage.retrieve(token)
+    except KeyError:
+        return None
     if 'profile' in auth:
         auth['id'] = auth['profile']['accounts'][0]['userid']
         auth['provider'] = auth['profile']['accounts'][0]['domain']
