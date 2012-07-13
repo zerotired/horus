@@ -33,7 +33,6 @@ from horus.lib              import openid_from_token
 
 import deform
 import pystache
-import sqlahelper
 
 
 _ = TranslationStringFactory('horus')
@@ -179,9 +178,7 @@ class AuthController(BaseController):
                                                             auth['profile'].get('displayName')))
                 user_account = self.UserAccount.get_by_openid(self.request, int(auth_info['userid']), auth_info['domain'])
                 if not user_account:
-                    DBSession = sqlahelper.get_session()
                     user = self.User(display_name=auth['profile'].get('displayName', u''))
-                    DBSession.add(user)
                     user_account = self.UserAccount(
                         username=username,
                         openid=int(auth_info['userid']),
@@ -190,8 +187,11 @@ class AuthController(BaseController):
                     if auth['profile'].has_key('verifiedEmail'):
                         user_account.email = auth['profile']['verifiedEmail']
                     user.accounts.append(user_account)
-                    DBSession.flush()
+                    self.db.add(user)
+                    self.db.flush()
                 return authenticated(self.request, user_account.id)
+            else:
+                self.request.session.flash(_('Logged in failed using external login provider'), 'error')
         return HTTPFound(location=redir, headers=headers)
 
 class ForgotPasswordController(BaseController):
