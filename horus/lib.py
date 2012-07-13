@@ -47,7 +47,7 @@ def openid_from_token(token, request):
     """
     storage = request.registry.queryUtility(IHorusVelruseStore)
     try:
-        auth = storage.retrieve(token)
+        auth = storage.retrieve(token.encode('UTF-8'))
     except KeyError:
         return None
     if 'profile' in auth:
