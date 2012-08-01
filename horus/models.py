@@ -179,6 +179,12 @@ class UserMixin(BaseModel):
                 )
             ).first()
 
+    @property
+    def __acl__(self):
+        return [
+            (Allow, 'user:%s' % self.id, 'access_user')
+        ]
+
 class UserAccountMixin(BaseModel):
 
     __table_args__ = (
@@ -396,7 +402,7 @@ class UserAccountMixin(BaseModel):
     @property
     def __acl__(self):
         return [
-                (Allow, 'useraccount:%s' % self.id, 'access_user')
+                (Allow, 'useraccount:%s' % self.id, 'access_user_account')
         ]
 
 class GroupMixin(BaseModel):

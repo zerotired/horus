@@ -31,6 +31,7 @@ def groupfinder(userid, request):
             groups.append('group:%s' % group.name)
 
         groups.append('useraccount:%s' % user_account.id)
+        groups.append('user:%s' % user_account.user.id)
 
     return groups
 

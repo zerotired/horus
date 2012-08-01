@@ -430,7 +430,7 @@ class ProfileController(BaseController):
 
         return {'user': user}
 
-    @view_config(permission='access_user', route_name='horus_edit_profile',
+    @view_config(permission='access_user_account', route_name='horus_edit_profile',
         renderer='horus:templates/edit_profile.mako')
     def edit_profile(self):
         user = self.request.context
