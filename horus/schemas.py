@@ -63,3 +63,7 @@ class AccountProviderSchema(colander.Schema):
         colander.String(),
         widget = deform.widget.HiddenWidget(),
     )
+    came_from = colander.SchemaNode(
+        colander.String(),
+        widget = deform.widget.HiddenWidget(),
+    )

@@ -34,17 +34,16 @@ from horus.lib              import openid_from_token
 import deform
 import pystache
 
-
 _ = TranslationStringFactory('horus')
 
-def authenticated(request, pk):
+def authenticated(request, id):
     """ This sets the auth cookies and redirects to the page defined
         in horus.login_redirect, defaults to a view named 'index'.
         If a ``came_from`` request parameter is found, this value is used
         for redirection instead.
     """
     settings = request.registry.settings
-    headers = remember(request, pk)
+    headers = remember(request, id)
     autologin = asbool(settings.get('horus.autologin', False))
 
     if not autologin:
@@ -103,6 +102,7 @@ class AuthController(BaseController):
         form = request.registry.getUtility(IHorusLoginForm)
 
         self.login_redirect_view = route_url(self.settings.get('horus.login_redirect', 'index'), request)
+        self.login_redirect_view = request.params.get('came_from', self.login_redirect_view)
         self.logout_redirect_view = route_url(self.settings.get('horus.logout_redirect', 'index'), request)
         self.require_activation = asbool(self.settings.get('horus.require_activation', True))
         self.allow_inactive_login = asbool(self.settings.get('horus.allow_inactive_login', False))

@@ -32,11 +32,12 @@ def generate_velruse_forms(request, came_from):
             buttons = (provider,)
             form = ProviderForm(schema, action=action, buttons=buttons)
             appstruct = dict(
-                end_point='%s?csrf_token=%s&next=%s' %\
+                end_point='%s?csrf_token=%s&came_from=%s' %\
                           (request.route_url('horus_velruse_callback'),\
                            request.session.get_csrf_token(),
-                           came_from),\
+                           came_from),
                 csrf_token = request.session.get_csrf_token(),
+                came_from = came_from,
             )
             velruse_forms.append(form.render(appstruct))
     return velruse_forms
