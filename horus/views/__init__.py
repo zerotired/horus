@@ -39,7 +39,9 @@ _ = TranslationStringFactory('horus')
 
 def authenticated(request, pk):
     """ This sets the auth cookies and redirects to the page defined
-        in horus.login_redirect, defaults to a view named 'index'
+        in horus.login_redirect, defaults to a view named 'index'.
+        If a ``came_from`` request parameter is found, this value is used
+        for redirection instead.
     """
     settings = request.registry.settings
     headers = remember(request, pk)
@@ -49,6 +51,7 @@ def authenticated(request, pk):
         request.session.flash(_('Logged in successfully.'), 'success')
 
     login_redirect_view = route_url(settings.get('horus.login_redirect', 'index'), request)
+    login_redirect_view = request.params.get('came_from', login_redirect_view)
 
     return HTTPFound(location=login_redirect_view, headers=headers)
 
