@@ -27,6 +27,7 @@ from horus.events           import NewRegistrationEvent
 from horus.events           import RegistrationActivatedEvent
 from horus.events           import PasswordResetEvent
 from horus.events           import ProfileUpdatedEvent
+from horus.events           import VelruseAccountCreated
 from hem.db                 import get_session
 from horus.lib              import generate_velruse_forms
 from horus.lib              import openid_from_token
@@ -192,6 +193,9 @@ class AuthController(BaseController):
                     user.accounts.append(user_account)
                     self.db.add(user)
                     self.db.flush()
+                    self.request.registry.notify(
+                        VelruseAccountCreated(self.request, user_account, auth)
+                    )
                 return authenticated(self.request, user_account.id)
             else:
                 self.request.session.flash(_('Logged in failed using external login provider'), 'error')
