@@ -38,7 +38,7 @@ requires = [
 ]
 
 setup(name='horus'
-      , version='dev2'
+      , version='dev3'
       , description='Generic user registration for pyramid'
       , long_description=README + '\n\n' +  CHANGES
       , classifiers=[
