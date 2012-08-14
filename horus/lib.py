@@ -16,7 +16,7 @@ def get_user_account(request):
     return None
 
 
-def generate_velruse_forms(request, came_from):
+def generate_velruse_forms(request, came_from, provider_form=ProviderForm):
     """ Generates variable form based on OpenID providers supported in
     the CONFIG.yaml file
     """
@@ -30,7 +30,7 @@ def generate_velruse_forms(request, came_from):
         for provider in providers:
             action = '/velruse/login/%s' % provider
             buttons = (provider,)
-            form = ProviderForm(schema, action=action, buttons=buttons)
+            form = provider_form(schema, action=action, buttons=buttons)
             appstruct = dict(
                 end_point='%s?csrf_token=%s&came_from=%s' %\
                           (request.route_url('horus_velruse_callback'),\
