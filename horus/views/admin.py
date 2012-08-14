@@ -12,7 +12,8 @@ _ = TranslationStringFactory('horus')
 class AdminController(BaseController):
     @view_config(
             route_name='horus_admin_users_create',
-            renderer='horus:templates/admin/create_user.mako'
+            renderer='horus:templates/admin/create_user.mako',
+            permission='admin'
     )
     def create_user(self):
         schema = AdminUserSchema()
@@ -46,7 +47,8 @@ class AdminController(BaseController):
 
     @view_config(
             route_name='horus_admin_users_list',
-            renderer='horus:templates/admin/users_list.mako'
+            renderer='horus:templates/admin/users_list.mako',
+            permission='admin'
     )
     def list(self):
         return dict(users=self.UserAccount.get_all(self.request))
