@@ -29,6 +29,11 @@ def groupfinder(userid, request):
     groups = []
 
     if user_account:
+        if not user_account.is_activated or user_account.user.active is False:
+            return groups
+        else:
+            groups.append('active')
+
         for group in user_account.user.groups:
             groups.append('group:%s' % group.name)
 
