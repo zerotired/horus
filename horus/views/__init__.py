@@ -55,25 +55,29 @@ def authenticated(request, id):
 
     return HTTPFound(location=login_redirect_view, headers=headers)
 
-def create_activation(request, user):
+def create_activation(request, user_account, route_name='horus_activate',
+                      template=_("Please activate your e-mail address by visiting {{ link }}"),
+                      subject=_("Please activate your e-mail address!"),
+                      body=None):
     db = get_session(request)
     Activation = request.registry.getUtility(IHorusActivationClass)
     activation = Activation()
 
     db.add(activation)
-    user.activation = activation
+    user_account.activation = activation
 
     db.flush()
 
-    body = pystache.render(_("Please activate your e-mail address by visiting {{ link }}"),
-        {
-            'link': request.route_url('horus_activate', user_pk=user.id, code=user.activation.code)
-        }
-    )
+    if body is None:
+        body = pystache.render(template,
+            {
+                'link': request.route_url(route_name, user_account_id=user_account.id, code=user_account.activation.code)
+            }
+        )
 
-    subject = _("Please activate your e-mail address!")
+    subject = subject
 
-    message = Message(subject=subject, recipients=[user.email], body=body)
+    message = Message(subject=subject, recipients=[user_account.email], body=body)
 
     mailer = get_mailer(request)
     mailer.send(message)
