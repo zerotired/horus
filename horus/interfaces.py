@@ -9,6 +9,9 @@ class IHorusUserAccountClass(Interface):
 class IHorusActivationClass(Interface):
     pass
 
+class IHorusGroupClass(Interface):
+    pass
+
 class IHorusLoginSchema(Interface):
     pass
 

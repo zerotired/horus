@@ -6,7 +6,9 @@ from horus.schemas      import ResetPasswordSchema
 from horus.schemas      import ProfileSchema
 from horus.forms        import SubmitForm
 from horus.resources    import RootFactory
-from horus.interfaces   import IHorusUserClass, IHorusUserAccountClass
+from horus.interfaces   import IHorusUserClass
+from horus.interfaces   import IHorusUserAccountClass
+from horus.interfaces   import IHorusGroupClass
 from horus.interfaces   import IHorusActivationClass
 from horus.interfaces   import IHorusLoginForm
 from horus.interfaces   import IHorusLoginSchema
@@ -49,6 +51,10 @@ def includeme(config):
     if not config.registry.queryUtility(IHorusUserAccountClass):
         user_account_class = get_class_from_config(settings, 'horus.user_account_class')
         config.registry.registerUtility(user_account_class, IHorusUserAccountClass)
+
+    if not config.registry.queryUtility(IHorusGroupClass):
+        group_class = get_class_from_config(settings, 'horus.group_class')
+        config.registry.registerUtility(group_class, IHorusGroupClass)
 
     if not config.registry.queryUtility(IHorusActivationClass):
         activation_class = get_class_from_config(settings,
