@@ -3,6 +3,7 @@ from pyramid.url            import route_url
 from pyramid.i18n           import TranslationStringFactory
 from pyramid.security       import remember
 from pyramid.security       import forget
+from pyramid.security       import NO_PERMISSION_REQUIRED
 from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.settings       import asbool
@@ -28,6 +29,7 @@ from horus.events           import RegistrationActivatedEvent
 from horus.events           import PasswordResetEvent
 from horus.events           import ProfileUpdatedEvent
 from horus.events           import VelruseAccountCreated
+from horus.events           import VelruseAccountLoggedIn
 from hem.db                 import get_session
 from horus.lib              import generate_velruse_forms
 from horus.lib              import openid_from_token
@@ -36,6 +38,9 @@ import deform
 import pystache
 
 _ = TranslationStringFactory('horus')
+
+import logging
+log = logging.getLogger(__name__)
 
 def authenticated(request, id):
     """ This sets the auth cookies and redirects to the page defined
@@ -167,14 +172,14 @@ class AuthController(BaseController):
 
         return HTTPFound(location=self.logout_redirect_view, headers=headers)
 
-    @view_config(route_name='horus_velruse_callback')
+    @view_config(route_name='horus_velruse_callback', permission=NO_PERMISSION_REQUIRED)
     def velruse_callback(self):
         """
         no return value, called with route_url('oauth_callback', request)
 
         This is the URL that Velruse returns an OpenID request to
         """
-        redir = self.request.GET.get('next', self.login_redirect_view)
+        redir = self.request.GET.get('came_from', self.login_redirect_view)
         headers = []
 
         if 'token' in self.request.POST:
@@ -185,14 +190,29 @@ class AuthController(BaseController):
                                         auth['profile'].get('preferredUsername',
                                                             auth['profile'].get('displayName')))
                 user_account = self.UserAccount.get_by_openid(self.request, int(auth_info['userid']), auth_info['domain'])
+                user = None
+
+                # If the user is already logged in via a different account,
+                # associate the new user_account with that user
+                logged_in_user_account = self.request.user_account
+                logged_in_user_email = None
+                if logged_in_user_account and logged_in_user_account != user_account:
+                    log.debug("User is logged in, associate the new account of provider %s", auth_info['domain'])
+                    user = logged_in_user_account.user
+                    if user.display_name is None or user.display_name == u'':
+                        user.display_name = auth['profile'].get('displayName', u'')
+                    logged_in_user_email = logged_in_user_account.email
+
                 if not user_account:
-                    user = self.User(display_name=auth['profile'].get('displayName', u''))
+                    if not user:
+                        user = self.User(display_name=auth['profile'].get('displayName', u''))
                     user_account = self.UserAccount(
                         username=username,
                         openid=int(auth_info['userid']),
                         provider=auth_info['domain'],
+                        email=logged_in_user_email
                     )
-                    if auth['profile'].has_key('verifiedEmail'):
+                    if auth['profile'].has_key('verifiedEmail') and not user_account.email:
                         user_account.email = auth['profile']['verifiedEmail']
                     user.accounts.append(user_account)
                     self.db.add(user)
@@ -200,7 +220,21 @@ class AuthController(BaseController):
                     self.request.registry.notify(
                         VelruseAccountCreated(self.request, user_account, auth)
                     )
-                return authenticated(self.request, user_account.id)
+                else:
+                    if user and user != user_account.user:
+                        user_account.user = user
+                    user_account.email = user_account.email and user_account.email or logged_in_user_email
+                    self.db.add(user_account)
+                    self.db.flush()
+
+                self.request.registry.notify(
+                    VelruseAccountLoggedIn(self.request, user_account)
+                )
+                if user_account.user.active is True:
+                    return authenticated(self.request, user_account.id)
+                else:
+                    log.debug("Velruse login failed, user is not active!")
+                    self.request.session.flash(_('Your account is deactivated, login failed.'), 'error')
             else:
                 self.request.session.flash(_('Logged in failed using external login provider'), 'error')
         return HTTPFound(location=redir, headers=headers)

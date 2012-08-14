@@ -29,3 +29,6 @@ class VelruseAccountCreated(BaseEvent):
     def __init__(self, request, user_account, velruse_payload):
         super(VelruseAccountCreated, self).__init__(request, user_account)
         self.velruse_payload = velruse_payload
+
+class VelruseAccountLoggedIn(BaseEvent):
+    pass
