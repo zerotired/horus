@@ -85,7 +85,10 @@ def create_activation(request, user_account, route_name='horus_activate',
     message = Message(subject=subject, recipients=[user_account.email], body=body)
 
     mailer = get_mailer(request)
-    mailer.send(message)
+    if request.registry.settings.get('mail.queue_path') is not None:
+        mailer.send_to_queue(message)
+    else:
+        mailer.send(message)
 
 
 class BaseController(object):
