@@ -190,6 +190,7 @@ class UserAccountMixin(BaseModel):
     __table_args__ = (
         UniqueConstraint('username', 'provider'),
         UniqueConstraint('openid', 'provider'),
+        UniqueConstraint('email', 'provider'),
         BaseModel.__table_args__
     )
 
@@ -218,7 +219,7 @@ class UserAccountMixin(BaseModel):
     @declared_attr
     def email(self):
         """ E-mail for user """
-        return sa.Column(sa.Unicode(100), nullable=True, unique=True)
+        return sa.Column(sa.Unicode(100), nullable=True, index=True)
 
     @declared_attr
     def status(self):
@@ -279,7 +280,7 @@ class UserAccountMixin(BaseModel):
     def activation(self):
         return sa.orm.relationship(
             'Activation',
-            backref='user'
+            backref='user_account'
         )
 
     @property
@@ -427,6 +428,12 @@ class GroupMixin(BaseModel):
             , passive_updates=True
             , backref=GroupMixin.__tablename__
         )
+
+    @classmethod
+    def get_by_name(cls, request, name):
+        session = get_session(request)
+        group = session.query(cls).filter(cls.name == name).first()
+        return group
 
 #    @declared_attr
 #    def permissions(self):
