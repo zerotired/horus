@@ -237,10 +237,10 @@ class AuthController(BaseController):
                 if user_account.user.active is True:
                     return authenticated(self.request, user_account.id)
                 else:
-                    log.debug("Velruse login failed, user is not active!")
-                    self.request.session.flash(_('Your account is deactivated, login failed.'), 'error')
+                    log.warn("Velruse login failed, user is not active!")
+                    self.request.session.flash(_('Login failed'), 'error')
             else:
-                self.request.session.flash(_('Logged in failed using external login provider'), 'error')
+                self.request.session.flash(_('Login failed using external login provider'), 'error')
         return HTTPFound(location=redir, headers=headers)
 
 class ForgotPasswordController(BaseController):
