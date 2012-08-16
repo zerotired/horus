@@ -167,10 +167,11 @@ class AuthController(BaseController):
     def logout(self):
         """
         Removes the auth cookies and redirects to the view defined in 
-        horus.lgout_redirect, defaults to a view named 'index'
+        horus.logout_redirect, defaults to a view named 'index'
         """
         self.request.session.invalidate()
-        self.request.session.flash(_('Logged out successfully.'), 'success')
+        if self.request.user_account:
+            self.request.session.flash(_('Logged out successfully.'), 'success')
         headers = forget(self.request)
 
         return HTTPFound(location=self.logout_redirect_view, headers=headers)
