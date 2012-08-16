@@ -258,7 +258,7 @@ class ForgotPasswordController(BaseController):
         form = form(schema)
 
         if self.request.method == 'GET':
-            if self.request.user:
+            if self.request.user_account:
                 return HTTPFound(location=self.forgot_password_redirect_view)
 
             return {'form': form.render()}
@@ -272,23 +272,23 @@ class ForgotPasswordController(BaseController):
 
             email = captured['Email']
 
-            user = self.UserAccount.get_by_email(self.request, email)
+            user_account = self.UserAccount.get_by_email(self.request, email)
             activation = self.Activation()
             self.db.add(activation)
 
-            user.activation = activation
+            user_account.activation = activation
 
-            if user:
+            if user_account:
                 mailer = get_mailer(self.request)
                 body = pystache.render(_("Someone has tried to reset your password, if this was you click here: {{ link }}"),
                     {
-                        'link': route_url('horus_reset_password', self.request, code=user.activation.code)
+                        'link': route_url('horus_reset_password', self.request, code=user_account.activation.code)
                     }
                 )
 
                 subject = _("Do you want to reset your password?")
 
-                message = Message(subject=subject, recipients=[user.email], body=body)
+                message = Message(subject=subject, recipients=[user_account.email], body=body)
                 mailer.send(message)
 
         # we don't want to say "E-mail not registered" or anything like that
@@ -309,14 +309,14 @@ class ForgotPasswordController(BaseController):
         activation = self.Activation.get_by_code(self.request, code)
 
         if activation:
-            user = self.UserAccount.get_by_activation(self.request, activation)
+            user_account = self.UserAccount.get_by_activation(self.request, activation)
 
-            if user:
+            if user_account:
                 if self.request.method == 'GET':
                         return {
                             'form': form.render(
                                 appstruct=dict(
-                                    Username=user.username
+                                    Username=user_account.username
                                 )
                             )
                         }
@@ -330,12 +330,12 @@ class ForgotPasswordController(BaseController):
 
                     password = captured['Password']
 
-                    user.password = password
-                    self.db.add(user)
+                    user_account.password = password
+                    self.db.add(user_account)
                     self.db.delete(activation)
 
                     self.request.registry.notify(
-                        PasswordResetEvent(self.request, user, password)
+                        PasswordResetEvent(self.request, user_account, password)
                     )
 
                     self.request.session.flash(_('Your password has been reset!'), 'success')
