@@ -124,7 +124,7 @@ class AuthController(BaseController):
         self.velruse_forms = generate_velruse_forms(request, self.login_redirect_view)
 
 
-    @view_config(route_name='horus_login', renderer='horus:templates/login.mako')
+    @view_config(route_name='horus_login', renderer='horus:templates/login.mako', permission=NO_PERMISSION_REQUIRED)
     def login(self):
         if self.request.method == 'GET':
             if self.request.user_account:
