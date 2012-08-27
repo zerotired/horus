@@ -1,6 +1,5 @@
 from pyramid.view           import view_config
 from pyramid.url            import route_url
-from pyramid.i18n           import TranslationStringFactory
 from pyramid.security       import remember
 from pyramid.security       import forget
 from pyramid.security       import NO_PERMISSION_REQUIRED
@@ -33,13 +32,14 @@ from horus.events           import VelruseAccountLoggedIn
 from hem.db                 import get_session
 from horus.lib              import generate_velruse_forms
 from horus.lib              import openid_from_token
+from horus.lib              import translate
 
 import deform
 import pystache
 
-_ = TranslationStringFactory('horus')
 
 import logging
+
 log = logging.getLogger(__name__)
 
 def authenticated(request, id):
@@ -53,7 +53,7 @@ def authenticated(request, id):
     autologin = asbool(settings.get('horus.autologin', False))
 
     if not autologin:
-        request.session.flash(_('Logged in successfully.'), 'success')
+        request.session.flash(translate( u"Logged in successfully.", request), 'success')
 
     login_redirect_view = route_url(settings.get('horus.login_redirect', 'index'), request)
     login_redirect_view = request.params.get('came_from', login_redirect_view)
@@ -61,9 +61,9 @@ def authenticated(request, id):
     return HTTPFound(location=login_redirect_view, headers=headers)
 
 def create_activation(request, user_account, route_name='horus_activate',
-                      template=_("Please activate your e-mail address by visiting {{ link }}"),
-                      subject=_("Please activate your e-mail address!"),
-                      body=None):
+                      template=None, subject=None, body=None):
+    template = template and template or translate(u"Please activate your e-mail address by visiting {{ link }}", request)
+    subject = subject and subject or translate(u"Please activate your e-mail address!", request)
     db = get_session(request)
     Activation = request.registry.getUtility(IHorusActivationClass)
     activation = Activation()
@@ -104,6 +104,9 @@ class BaseController(object):
         self.UserAccount = request.registry.getUtility(IHorusUserAccountClass)
         self.Activation = request.registry.getUtility(IHorusActivationClass)
         self.db = get_session(request)
+
+    def translate(self, string):
+        return translate(string, self.request)
 
 class AuthController(BaseController):
     def __init__(self, request):
@@ -154,12 +157,12 @@ class AuthController(BaseController):
                 if not self.allow_inactive_login:
                     if self.require_activation:
                         if not user_account.is_activated:
-                            self.request.session.flash(_(u'Your account is not active, please check your e-mail.'), 'error')
+                            self.request.session.flash(self.translate(u'Your account is not active, please check your e-mail.'), 'error')
                             return {'form': self.form.render()}
 
                 return authenticated(self.request, user_account.id)
 
-            self.request.session.flash(_('Invalid username or password.'), 'error')
+            self.request.session.flash(self.translate(u"Invalid username or password."), 'error')
 
             return {'form': self.form.render(appstruct=captured)}
 
@@ -171,7 +174,7 @@ class AuthController(BaseController):
         """
         self.request.session.invalidate()
         if self.request.user_account:
-            self.request.session.flash(_('Logged out successfully.'), 'success')
+            self.request.session.flash(self.translate(u"Logged out successfully."), 'success')
         headers = forget(self.request)
 
         return HTTPFound(location=self.logout_redirect_view, headers=headers)
@@ -238,9 +241,9 @@ class AuthController(BaseController):
                     return authenticated(self.request, user_account.id)
                 else:
                     log.warn("Velruse login failed, user is not active!")
-                    self.request.session.flash(_('Login failed'), 'error')
+                    self.request.session.flash(self.translate(u"Login failed"), 'error')
             else:
-                self.request.session.flash(_('Login failed using external login provider'), 'error')
+                self.request.session.flash(self.translate(u"Login failed using external login provider"), 'error')
         return HTTPFound(location=redir, headers=headers)
 
 class ForgotPasswordController(BaseController):
@@ -281,20 +284,20 @@ class ForgotPasswordController(BaseController):
 
             if user_account:
                 mailer = get_mailer(self.request)
-                body = pystache.render(_("Someone has tried to reset your password, if this was you click here: {{ link }}"),
+                body = pystache.render(self.translate(u"Someone has tried to reset your password, if this was you click here: {{ link }}"),
                     {
                         'link': route_url('horus_reset_password', self.request, code=user_account.activation.code)
                     }
                 )
 
-                subject = _("Do you want to reset your password?")
+                subject = self.translate(u"Do you want to reset your password?")
 
                 message = Message(subject=subject, recipients=[user_account.email], body=body)
                 mailer.send(message)
 
         # we don't want to say "E-mail not registered" or anything like that
         # because it gives spammers context
-        self.request.session.flash(_('Please check your e-mail to reset your password.'), 'success')
+        self.request.session.flash(self.translate(u"Please check your e-mail to reset your password."), 'success')
         return HTTPFound(location=self.reset_password_redirect_view)
 
     @view_config(route_name='horus_reset_password', renderer='horus:templates/reset_password.mako')
@@ -339,7 +342,7 @@ class ForgotPasswordController(BaseController):
                         PasswordResetEvent(self.request, user_account, password)
                     )
 
-                    self.request.session.flash(_('Your password has been reset!'), 'success')
+                    self.request.session.flash(self.translate(u"Your password has been reset!"), 'success')
 
                     return HTTPFound(location=self.reset_password_redirect_view)
 
@@ -390,9 +393,9 @@ class RegisterController(BaseController):
 
             if user_account:
                 if user_account.username == username:
-                    self.request.session.flash(_('That username is already used.'), 'error')
+                    self.request.session.flash(self.translate(u"That username is already used."), 'error')
                 elif user_account.email == email:
-                    self.request.session.flash(_('That e-mail is already used.'), 'error')
+                    self.request.session.flash(self.translate(u"That e-mail is already used."), 'error')
 
                 return {'form': self.form.render(self.request.POST)}
 
@@ -407,10 +410,10 @@ class RegisterController(BaseController):
                 if self.require_activation:
                     # SEND EMAIL ACTIVATION
                     create_activation(self.request, user_account)
-                    self.request.session.flash(_('Please check your E-mail for an activation link'), 'success')
+                    self.request.session.flash(self.translate(u"Please check your E-mail for an activation link"), 'success')
                 else:
                     if not autologin:
-                        self.request.session.flash(_('You have been registered, you may login now!'), 'success')
+                        self.request.session.flash(self.translate(u"You have been registered, you may login now!"), 'success')
 
             except Exception as exc:
                 self.request.session.flash(exc.message, 'error')
@@ -451,7 +454,7 @@ class RegisterController(BaseController):
                     RegistrationActivatedEvent(self.request, user, activation)
                 )
 
-                self.request.session.flash(_('Your e-mail address has been verified.'), 'success')
+                self.request.session.flash(self.translate(u"Your e-mail address has been verified."), 'success')
                 return HTTPFound(location=self.activate_redirect_view)
 
         return HTTPNotFound()
@@ -515,7 +518,7 @@ class ProfileController(BaseController):
 
                 if email_user:
                     if email_user.id != user.id:
-                        self.request.session.flash(_('That e-mail is already used.'), 'error')
+                        self.request.session.flash(self.translate(u"That e-mail is already used."), 'error')
 
                         return HTTPFound(location=self.request.url)
 
@@ -526,7 +529,7 @@ class ProfileController(BaseController):
             if password:
                 user.password = password
 
-            self.request.session.flash(_('Profile successfully updated.'), 'success')
+            self.request.session.flash(self.translate(u"Profile successfully updated."), 'success')
 
             self.db.add(user)
 

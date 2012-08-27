@@ -1,0 +1,115 @@
+# Translations template for horus.
+# Copyright (C) 2012 ORGANIZATION
+# This file is distributed under the same license as the horus project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2012.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: horus dev6\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2012-08-22 12:42+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 0.9.6\n"
+
+#: horus/forms.py:10 horus/forms.py:17
+msgid "Submit"
+msgstr ""
+
+#: horus/schemas.py:11 horus/schemas.py:23 horus/schemas.py:47 horus/schemas.py:61
+#: horus/schemas.py:81
+msgid "Username"
+msgstr ""
+
+#: horus/schemas.py:15 horus/schemas.py:32 horus/schemas.py:53 horus/schemas.py:72
+#: horus/schemas.py:90
+msgid "Password"
+msgstr ""
+
+#: horus/schemas.py:27 horus/schemas.py:40 horus/schemas.py:67 horus/schemas.py:85
+msgid "Email"
+msgstr ""
+
+#: horus/views/__init__.py:56
+msgid "Logged in successfully."
+msgstr ""
+
+#: horus/views/__init__.py:65
+msgid "Please activate your e-mail address by visiting {{ link }}"
+msgstr ""
+
+#: horus/views/__init__.py:66
+msgid "Please activate your e-mail address!"
+msgstr ""
+
+#: horus/views/__init__.py:160
+msgid "Your account is not active, please check your e-mail."
+msgstr ""
+
+#: horus/views/__init__.py:165
+msgid "Invalid username or password."
+msgstr ""
+
+#: horus/views/__init__.py:177
+msgid "Logged out successfully."
+msgstr ""
+
+#: horus/views/__init__.py:244
+msgid "Login failed"
+msgstr ""
+
+#: horus/views/__init__.py:246
+msgid "Login failed using external login provider"
+msgstr ""
+
+#: horus/views/__init__.py:287
+msgid ""
+"Someone has tried to reset your password, if this was you click here: {{ link"
+" }}"
+msgstr ""
+
+#: horus/views/__init__.py:293
+msgid "Do you want to reset your password?"
+msgstr ""
+
+#: horus/views/__init__.py:300
+msgid "Please check your e-mail to reset your password."
+msgstr ""
+
+#: horus/views/__init__.py:345
+msgid "Your password has been reset!"
+msgstr ""
+
+#: horus/views/__init__.py:396
+msgid "That username is already used."
+msgstr ""
+
+#: horus/views/__init__.py:398 horus/views/__init__.py:521
+msgid "That e-mail is already used."
+msgstr ""
+
+#: horus/views/__init__.py:413
+msgid "Please check your E-mail for an activation link"
+msgstr ""
+
+#: horus/views/__init__.py:416
+msgid "You have been registered, you may login now!"
+msgstr ""
+
+#: horus/views/__init__.py:457
+msgid "Your e-mail address has been verified."
+msgstr ""
+
+#: horus/views/__init__.py:532
+msgid "Profile successfully updated."
+msgstr ""
+
+#: horus/views/admin.py:41
+msgid "The user account was created"
+msgstr ""
+

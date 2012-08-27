@@ -1,4 +1,5 @@
 from horus.views            import BaseController
+from horus.views            import translate
 from horus.schemas          import AdminUserSchema
 from horus.forms            import HorusForm
 from pyramid.view           import view_config
@@ -6,8 +7,6 @@ from pyramid.httpexceptions import HTTPFound
 from pyramid.i18n           import TranslationStringFactory
 
 import deform
-
-_ = TranslationStringFactory('horus')
 
 class AdminController(BaseController):
     @view_config(
@@ -39,7 +38,7 @@ class AdminController(BaseController):
 
             self.db.add(user)
 
-            self.request.session.flash(_(u'The user account was created'), 'success')
+            self.request.session.flash(translate(u'The user account was created'), 'success')
 
             return HTTPFound(
                 location=self.request.route_url('horus_admin_users_list')

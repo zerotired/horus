@@ -1,9 +1,17 @@
-from anykeystore.store import create_store_from_settings
+from pyramid.i18n       import TranslationStringFactory
+from pyramid.i18n       import get_localizer
 from pyramid.security   import unauthenticated_userid
 from horus.forms        import ProviderForm
 from horus.interfaces   import IHorusUserAccountClass
 from horus.interfaces   import IHorusVelruseStore
 from horus.schemas      import AccountProviderSchema
+
+tsf = TranslationStringFactory('horus')
+
+def translate(string, request):
+    localizer = get_localizer(request)
+    return localizer.translate(tsf(string))
+
 
 
 def get_user_account(request):

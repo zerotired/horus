@@ -98,3 +98,5 @@ def includeme(config):
 
     config.include('horus.routes')
     config.scan()
+
+    config.add_translation_dirs('horus:locale/')
