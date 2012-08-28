@@ -12,6 +12,13 @@
     % endfor
     <h1>Login</h1>
     ${form|n}
+
+    % if velruse_forms:
+        % for provider_form in velruse_forms:
+            ${provider_form|n}
+        % endfor
+    % endif
+
     <a href="${request.route_url('horus_forgot_password')}">Forgot Password</a>
   </body>
 </html>

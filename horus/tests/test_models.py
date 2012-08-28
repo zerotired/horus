@@ -57,8 +57,8 @@ class TestActivation(UnitTestBase):
         from horus.tests.models import Activation
         from horus.tests.models import User
 
-        user1 = User(user_name='sontek1', email='sontek@gmail.com')
-        user2 = User(user_name='sontek2', email='sontek+2@gmail.com')
+        user1 = User(username='sontek1', email='sontek@gmail.com')
+        user2 = User(username='sontek2', email='sontek+2@gmail.com')
         user1.set_password('password')
         user2.set_password('password')
 
@@ -71,7 +71,7 @@ class TestActivation(UnitTestBase):
 
         request = testing.DummyRequest()
 
-        new_user = User.get_by_user_name(request, 'sontek2')
+        new_user = User.get_by_username(request, 'sontek2')
 
         new_activation = Activation.get_by_code(request, activation.code)
 
@@ -79,198 +79,198 @@ class TestActivation(UnitTestBase):
         assert new_user.activation == new_activation
 
 
-class TestUser(UnitTestBase):
+class TestUserAccount(UnitTestBase):
     def test_password_hashing(self):
-        from horus.tests.models import User
-        user1 = User(user_name='sontek', email='sontek@gmail.com')
-        user1.set_password('password')
-        self.session.add(user1)
+        from horus.tests.models import UserAccount
+        user_account1 = UserAccount(username='sontek', email='sontek@gmail.com')
+        user_account1.set_password('password')
+        self.session.add(user_account1)
         self.session.flush()
 
-        assert user1.password != 'password'
-        assert user1.salt != None
+        assert user_account1.password != 'password'
+        assert user_account1.salt != None
 
     def test_acl(self):
-        from horus.tests.models import User
+        from horus.tests.models import UserAccount
         from pyramid.security import Allow
 
-        user1 = User(user_name='sontek', email='sontek@gmail.com')
-        user1.set_password('foo')
+        user_account1 = UserAccount(username='sontek', email='sontek@gmail.com')
+        user_account1.set_password('foo')
 
-        self.session.add(user1)
+        self.session.add(user_account1)
         self.session.flush()
 
-        assert user1.__acl__ == [(Allow, 'user:%s' % user1.pk, 'access_user')]
+        assert user_account1.__acl__ == [(Allow, 'useraccount:%s' % user_account1.id, 'access_user_account')]
 
     def test_get_valid_user(self):
-        from horus.tests.models import User
+        from horus.tests.models import UserAccount
 
-        user = User(user_name='sontek', email='sontek@gmail.com')
-        user.set_password('temp')
-        self.session.add(user)
+        user_account = UserAccount(username='sontek', email='sontek@gmail.com')
+        user_account.set_password('temp')
+        self.session.add(user_account)
         self.session.commit()
 
         request = testing.DummyRequest()
 
-        new_user = User.get_user(request, 'sontek', 'temp')
+        new_user_account = UserAccount.get_account(request, 'sontek', 'temp')
 
-        assert user == new_user
+        assert user_account == new_user_account
 
     def test_get_all_users(self):
-        from horus.tests.models import User
+        from horus.tests.models import UserAccount
 
-        user = User(user_name='sontek', email='sontek@gmail.com')
-        user.set_password('temp')
-        user2 = User(user_name='sontek2', email='sontek2@gmail.com')
-        user2.set_password('temp')
-        self.session.add(user)
-        self.session.add(user2)
+        user_account = UserAccount(username='sontek', email='sontek@gmail.com')
+        user_account.set_password('temp')
+        user_account2 = UserAccount(username='sontek2', email='sontek2@gmail.com')
+        user_account2.set_password('temp')
+        self.session.add(user_account)
+        self.session.add(user_account2)
         self.session.commit()
 
         request = testing.DummyRequest()
 
-        users = User.get_all(request)
+        user_accounts = UserAccount.get_all(request)
 
-        assert len(users.all()) == 2
+        assert len(user_accounts.all()) == 2
 
     def test_get_invalid_user(self):
-        from horus.tests.models import User
+        from horus.tests.models import UserAccount
 
-        user = User(user_name='sontek1', email='sontek@gmail.com')
-        user.set_password('temp')
-        self.session.add(user)
+        user_account = UserAccount(username='sontek1', email='sontek@gmail.com')
+        user_account.set_password('temp')
+        self.session.add(user_account)
         self.session.commit()
 
         request = testing.DummyRequest()
 
-        new_user = User.get_user(request, 'sontek', 'temp')
+        new_user_account = UserAccount.get_user(request, 'sontek', 'temp')
 
-        assert new_user == None
+        assert new_user_account == None
 
-    def test_get_user_by_pk(self):
-        from horus.tests.models import User
+    def test_get_user_by_id(self):
+        from horus.tests.models import UserAccount
 
-        user = User(user_name='sontek', email='sontek@gmail.com')
-        user.set_password('temp')
-        self.session.add(user)
+        user_account = UserAccount(username='sontek', email='sontek@gmail.com')
+        user_account.set_password('temp')
+        self.session.add(user_account)
         self.session.commit()
 
         request = testing.DummyRequest()
 
-        new_user = User.get_by_pk(request, user.pk)
+        new_user_account = UserAccount.get_by_id(request, user_account.id)
 
-        assert new_user == user
+        assert new_user_account == user_account
 
-    def test_get_user_by_invalid_pk(self):
-        from horus.tests.models import User
+    def test_get_user_by_invalid_id(self):
+        from horus.tests.models import UserAccount
 
-        user = User(user_name='sontek', email='sontek@gmail.com')
-        user.set_password('temp')
-        self.session.add(user)
+        user_account = UserAccount(username='sontek', email='sontek@gmail.com')
+        user_account.set_password('temp')
+        self.session.add(user_account)
         self.session.commit()
 
         request = testing.DummyRequest()
 
-        new_user = User.get_by_pk(request, 2)
+        new_user_account = UserAccount.get_by_id(request, 2)
 
-        assert new_user == None
+        assert new_user_account == None
 
     def test_get_user_by_username(self):
-        from horus.tests.models import User
+        from horus.tests.models import UserAccount
 
-        user = User(user_name='sontek', email='sontek@gmail.com')
-        user.set_password('temp')
-        self.session.add(user)
+        user_account = UserAccount(username='sontek', email='sontek@gmail.com')
+        user_account.set_password('temp')
+        self.session.add(user_account)
         self.session.commit()
 
         request = testing.DummyRequest()
 
-        new_user = User.get_by_user_name(request, 'sontek')
+        new_user_account = UserAccount.get_by_username(request, 'sontek')
 
-        assert new_user == user
+        assert new_user_account == user_account
 
     def test_get_user_by_invalid_username(self):
-        from horus.tests.models import User
+        from horus.tests.models import UserAccount
 
-        user = User(user_name='sontek', email='sontek@gmail.com')
-        user.set_password('temp')
-        self.session.add(user)
+        user_account = UserAccount(username='sontek', email='sontek@gmail.com')
+        user_account.set_password('temp')
+        self.session.add(user_account)
         self.session.commit()
 
         request = testing.DummyRequest()
 
-        new_user = User.get_by_user_name(request, 'sontek1')
+        new_user_account = UserAccount.get_by_username(request, 'sontek1')
 
-        assert new_user == None
+        assert new_user_account == None
 
     def test_get_user_by_email(self):
-        from horus.tests.models import User
+        from horus.tests.models import UserAccount
 
-        user = User(user_name='sontek', email='sontek@gmail.com')
-        user.set_password('password')
+        user_account = UserAccount(username='sontek', email='sontek@gmail.com')
+        user_account.set_password('password')
 
-        self.session.add(user)
+        self.session.add(user_account)
         self.session.commit()
 
         request = testing.DummyRequest()
 
-        new_user = User.get_by_email(request, user.email)
+        new_user_account = UserAccount.get_by_email(request, user_account.email)
 
-        assert new_user == user
+        assert new_user_account == user_account
 
     def test_get_user_by_invalid_email(self):
-        from horus.tests.models import User
+        from horus.tests.models import UserAccount
 
-        user = User(user_name='sontek', email='sontek@gmail.com')
-        user.set_password('password')
-        self.session.add(user)
+        user_account = UserAccount(username='sontek', email='sontek@gmail.com')
+        user_account.set_password('password')
+        self.session.add(user_account)
         self.session.commit()
 
         request = testing.DummyRequest()
 
-        new_user = User.get_by_email(request, 'sontek1@gmail.com')
+        new_user_account = UserAccount.get_by_email(request, 'sontek1@gmail.com')
 
-        assert new_user == None
+        assert new_user_account == None
 
     def test_get_user_by_activation(self):
-        from horus.tests.models import User
+        from horus.tests.models import UserAccount
         from horus.tests.models import Activation
 
-        user = User(user_name='sontek', email='sontek@gmail.com')
-        user.set_password('password')
+        user_account = UserAccount(username='sontek', email='sontek@gmail.com')
+        user_account.set_password('password')
         activation = Activation()
-        user.activation = activation
+        user_account.activation = activation
 
-        self.session.add(user)
+        self.session.add(user_account)
         self.session.commit()
 
         request = testing.DummyRequest()
 
-        new_user = User.get_by_activation(request, activation)
+        new_user_account = UserAccount.get_by_activation(request, activation)
 
-        assert new_user == user
+        assert new_user_account == user_account
 
     def test_get_user_by_activation_with_multiple_users(self):
-        from horus.tests.models import User
+        from horus.tests.models import UserAccount
         from horus.tests.models import Activation
 
-        user1 = User(user_name='sontek1', email='sontek@gmail.com')
-        user2 = User(user_name='sontek2', email='sontek+2@gmail.com')
-        user1.set_password('password')
-        user2.set_password('password2')
+        user_account1 = UserAccount(username='sontek1', email='sontek@gmail.com')
+        user_account2 = UserAccount(username='sontek2', email='sontek+2@gmail.com')
+        user_account1.set_password('password')
+        user_account2.set_password('password2')
         activation = Activation()
-        user2.activation = activation
+        user_account2.activation = activation
 
-        self.session.add(user1)
-        self.session.add(user2)
+        self.session.add(user_account1)
+        self.session.add(user_account2)
 
         self.session.commit()
 
         request = testing.DummyRequest()
 
-        new_user = User.get_by_activation(request, activation)
+        new_user_account = UserAccount.get_by_activation(request, activation)
 
-        assert new_user == user2
+        assert new_user_account == user_account2
 
 class TestGroup(UnitTestBase):
     def test_init(self):
@@ -283,9 +283,12 @@ class TestGroup(UnitTestBase):
     def test_get_all(self):
         from horus.tests.models import Group
         from horus.tests.models import User
+        from horus.tests.models import UserAccount
 
-        user = User(user_name='sontek', email='sontek@gmail.com')
-        user.set_password('temp')
+        user = User()
+        user_account = UserAccount(username='sontek', email='sontek@gmail.com')
+        user_account.set_password('temp')
+        user.accounts.apend(user_account)
         self.session.add(user)
 
         group = Group(name='admin', description='group for admins')
@@ -299,9 +302,8 @@ class TestGroup(UnitTestBase):
 
         assert len(groups.all()) == 1
 
-    def test_get_by_pk(self):
+    def test_get_by_id(self):
         from horus.tests.models import Group
-        from horus.tests.models import User
 
         group = Group(name='admin', description='group for admins')
         group2 = Group(name='employees', description='group for employees')
@@ -313,7 +315,7 @@ class TestGroup(UnitTestBase):
 
         request = testing.DummyRequest()
 
-        group = Group.get_by_pk(request, group2.pk)
+        group = Group.get_by_id(request, group2.id)
 
         assert group.name == 'employees'
 

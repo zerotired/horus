@@ -1,27 +1,34 @@
 class BaseEvent(object):
-    def __init__(self, request, user):
+    def __init__(self, request, user_account):
         self.request = request
-        self.user = user
+        self.user_account = user_account
 
 class NewRegistrationEvent(BaseEvent):
-    def __init__(self, request, user, activation, values):
-        super(NewRegistrationEvent, self).__init__(request, user)
+    def __init__(self, request, user_account, activation, values):
+        super(NewRegistrationEvent, self).__init__(request, user_account)
 
         self.activation = activation
         self.values = values
 
 class RegistrationActivatedEvent(BaseEvent):
-    def __init__(self, request, user, activation):
-        super(RegistrationActivatedEvent, self).__init__(request, user)
+    def __init__(self, request, user_account, activation):
+        super(RegistrationActivatedEvent, self).__init__(request, user_account)
         self.activation = activation
 
 class PasswordResetEvent(BaseEvent):
-    def __init__(self, request, user, password):
-        super(PasswordResetEvent, self).__init__(request, user)
+    def __init__(self, request, user_account, password):
+        super(PasswordResetEvent, self).__init__(request, user_account)
         self.password = password
 
 class ProfileUpdatedEvent(BaseEvent):
-    def __init__(self, request, user, values):
-        super(ProfileUpdatedEvent, self).__init__(request, user)
+    def __init__(self, request, user_account, values):
+        super(ProfileUpdatedEvent, self).__init__(request, user_account)
         self.values = values
 
+class VelruseAccountCreated(BaseEvent):
+    def __init__(self, request, user_account, velruse_payload):
+        super(VelruseAccountCreated, self).__init__(request, user_account)
+        self.velruse_payload = velruse_payload
+
+class VelruseAccountLoggedIn(BaseEvent):
+    pass

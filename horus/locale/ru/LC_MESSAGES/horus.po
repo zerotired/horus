@@ -1,0 +1,125 @@
+# Russian translations for horus.
+# Copyright (C) 2012 ORGANIZATION
+# This file is distributed under the same license as the horus project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2012.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: horus dev6\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2012-08-22 12:42+0200\n"
+"PO-Revision-Date: 2012-08-22 12:47+0100\n"
+"Last-Translator: Sebastian Utz <su@rtme.net>\n"
+"Language-Team: ru <LL@li.org>\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 0.9.6\n"
+
+#: horus/forms.py:10
+#: horus/forms.py:17
+msgid "Submit"
+msgstr "Отправить"
+
+#: horus/schemas.py:11
+#: horus/schemas.py:23
+#: horus/schemas.py:47
+#: horus/schemas.py:61
+#: horus/schemas.py:81
+msgid "Username"
+msgstr "Логин"
+
+#: horus/schemas.py:15
+#: horus/schemas.py:32
+#: horus/schemas.py:53
+#: horus/schemas.py:72
+#: horus/schemas.py:90
+msgid "Password"
+msgstr "Пароль"
+
+#: horus/schemas.py:27
+#: horus/schemas.py:40
+#: horus/schemas.py:67
+#: horus/schemas.py:85
+msgid "Email"
+msgstr "Электронная почта"
+
+#: horus/views/__init__.py:56
+#| msgid "Logged out successfully."
+msgid "Logged in successfully."
+msgstr "Вход успешно осуществлен."
+
+#: horus/views/__init__.py:65
+msgid "Please activate your e-mail address by visiting {{ link }}"
+msgstr "Пожалуйста, активируйте Ваш электронный адрес по этой ссылке {{ link }}"
+
+#: horus/views/__init__.py:66
+msgid "Please activate your e-mail address!"
+msgstr "Пожалуйста, активируйте Ваш электронный адрес!"
+
+#: horus/views/__init__.py:160
+msgid "Your account is not active, please check your e-mail."
+msgstr "Ваш аккаунт активирован. Пожалуйста, проверьте Вашу электронную почту."
+
+#: horus/views/__init__.py:165
+msgid "Invalid username or password."
+msgstr "Неправильный логин или пароль."
+
+#: horus/views/__init__.py:177
+msgid "Logged out successfully."
+msgstr "Сессия успешно завершена."
+
+#: horus/views/__init__.py:244
+msgid "Login failed"
+msgstr "Неудачная попытка входа"
+
+#: horus/views/__init__.py:246
+msgid "Login failed using external login provider"
+msgstr "Неудачная попытка входа через внешнего провайдера"
+
+#: horus/views/__init__.py:287
+msgid "Someone has tried to reset your password, if this was you click here: {{ link }}"
+msgstr "Кто-то пытался сбросить Ваш пароль. Если это были Вы, нажмите сюда: {{ link }}"
+
+#: horus/views/__init__.py:293
+msgid "Do you want to reset your password?"
+msgstr "Вы хотите сбросить свой пароль?"
+
+#: horus/views/__init__.py:300
+msgid "Please check your e-mail to reset your password."
+msgstr "Пожалуйста, проверьте Вашу электронную почту для сброса пароля."
+
+#: horus/views/__init__.py:345
+msgid "Your password has been reset!"
+msgstr "Ваш пароль был сброшен"
+
+#: horus/views/__init__.py:396
+msgid "That username is already used."
+msgstr "Этот логин уже использован."
+
+#: horus/views/__init__.py:398
+#: horus/views/__init__.py:521
+msgid "That e-mail is already used."
+msgstr "Этот электронный адрес уже использован."
+
+#: horus/views/__init__.py:413
+msgid "Please check your E-mail for an activation link"
+msgstr "Пожалуйста, проверьте Вашу электронную почту, чтобы найти ссылку активации."
+
+#: horus/views/__init__.py:416
+msgid "You have been registered, you may login now!"
+msgstr "Вы были зарегистрированы. Теперь Вы можете войти в систему!"
+
+#: horus/views/__init__.py:457
+msgid "Your e-mail address has been verified."
+msgstr "Ваш электронный адрес был верифицирован."
+
+#: horus/views/__init__.py:532
+msgid "Profile successfully updated."
+msgstr "Профиль был успешно обновлен."
+
+#: horus/views/admin.py:41
+msgid "The user account was created"
+msgstr "Пользовательский аккаунт успешно создан"
+

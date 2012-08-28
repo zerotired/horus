@@ -38,7 +38,7 @@ requires = [
 ]
 
 setup(name='horus'
-      , version='dev'
+      , version='dev7'
       , description='Generic user registration for pyramid'
       , long_description=README + '\n\n' +  CHANGES
       , classifiers=[
@@ -64,5 +64,13 @@ setup(name='horus'
       , dependency_links = [
             'https://github.com/eventray/hem/tarball/master#egg=hem-dev'
         ]
+      , message_extractors = {
+            'horus': [
+                ('**.py', 'python', None),
+                ('**/templates/**.html', 'mako', None),
+                ('**/templates/**.mako', 'mako', None),
+            ]
+        }
+
 )
 

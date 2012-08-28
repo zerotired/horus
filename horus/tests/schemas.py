@@ -4,7 +4,7 @@ import deform
 from pyramid_deform import CSRFSchema
 
 class ProfileSchema(CSRFSchema):
-    User_name = colander.SchemaNode(colander.String(),
+    Username = colander.SchemaNode(colander.String(),
             widget=deform.widget.TextInputWidget(template='readonly/textinput'),
             missing=colander.null,
         )

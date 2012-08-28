@@ -3,7 +3,13 @@ from zope.interface import Interface
 class IHorusUserClass(Interface):
     pass
 
+class IHorusUserAccountClass(Interface):
+    pass
+
 class IHorusActivationClass(Interface):
+    pass
+
+class IHorusGroupClass(Interface):
     pass
 
 class IHorusLoginSchema(Interface):
@@ -34,4 +40,7 @@ class IHorusProfileForm(Interface):
     pass
 
 class IHorusProfileSchema(Interface):
+    pass
+
+class IHorusVelruseStore(Interface):
     pass

@@ -1,19 +1,18 @@
 from horus.views            import BaseController
+from horus.views            import translate
 from horus.schemas          import AdminUserSchema
 from horus.forms            import HorusForm
-from horus.interfaces       import IHorusUserClass
 from pyramid.view           import view_config
 from pyramid.httpexceptions import HTTPFound
 from pyramid.i18n           import TranslationStringFactory
 
 import deform
 
-_ = TranslationStringFactory('horus')
-
 class AdminController(BaseController):
     @view_config(
             route_name='horus_admin_users_create',
-            renderer='horus:templates/admin/create_user.mako'
+            renderer='horus:templates/admin/create_user.mako',
+            permission='admin'
     )
     def create_user(self):
         schema = AdminUserSchema()
@@ -29,16 +28,17 @@ class AdminController(BaseController):
             except deform.ValidationFailure, e:
                 return dict(form=e, errors=e.error.children)
 
-            user = self.User(
-                    user_name=captured['User_name'],
-                    email=captured['Email']
+            user = self.User()
+            user_account = self.UserAccount(
+                    username=captured['Username'],
+                    email=captured['Email'],
+                    password=captured['Password']
             )
-
-            user.set_password(captured['Password'])
+            user.accounts.append(user_account)
 
             self.db.add(user)
 
-            self.request.session.flash(_(u'The user was created'), 'success')
+            self.request.session.flash(translate(u'The user account was created'), 'success')
 
             return HTTPFound(
                 location=self.request.route_url('horus_admin_users_list')
@@ -46,7 +46,8 @@ class AdminController(BaseController):
 
     @view_config(
             route_name='horus_admin_users_list',
-            renderer='horus:templates/admin/users_list.mako'
+            renderer='horus:templates/admin/users_list.mako',
+            permission='admin'
     )
     def list(self):
-        return dict(users=self.User.get_all(self.request))
+        return dict(users=self.UserAccount.get_all(self.request))

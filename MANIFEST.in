@@ -3,3 +3,6 @@ global-exclude .DS_Store
 global-include test.ini
 include MANIFEST.in
 recursive-include horus *.mako
+recursive-include horus *.po
+recursive-include horus *.mo
+recursive-include horus *.pot

@@ -97,7 +97,7 @@ class TestAuthController(UnitTestBase):
 
         assert errors[0].node.name == u'csrf_token'
         assert errors[0].msg == u'Required'
-        assert errors[1].node.name == u'User_name'
+        assert errors[1].node.name == u'Username'
         assert errors[1].msg == u'Required'
         assert errors[2].node.name == u'Password'
         assert errors[2].msg == u'Required'
@@ -147,7 +147,7 @@ class TestAuthController(UnitTestBase):
 
         request = self.get_csrf_request(post={
                 'submit': True,
-                'User_name': 'admin',
+                'Username': 'admin',
                 'Password': 'test123',
             }, request_method='POST')
 
@@ -182,7 +182,7 @@ class TestAuthController(UnitTestBase):
 
         request = self.get_csrf_request(post={
                 'submit': True,
-                'User_name': 'sontek',
+                'Username': 'sontek',
                 'Password': 'foo',
             }, request_method='POST')
 
@@ -212,7 +212,7 @@ class TestAuthController(UnitTestBase):
 
         request = self.get_csrf_request(post={
                 'submit': True,
-                'User_name': 'sontek',
+                'Username': 'sontek',
                 'Password': 'foo',
             }, request_method='POST')
 
@@ -390,7 +390,7 @@ class TestRegisterController(UnitTestBase):
         self.config.add_route('index', '/')
 
         request = self.get_csrf_request(post={
-            'User_name': 'admin',
+            'Username': 'admin',
             'Password': {
                 'Password': 'test123',
                 'Password-confirm': 'test123',
@@ -457,7 +457,7 @@ class TestRegisterController(UnitTestBase):
         self.session.flush()
 
         request = self.get_csrf_request(post={
-            'User_name': 'sontek',
+            'Username': 'sontek',
             'Password': {
                 'Password': 'test123',
                 'Password-confirm': 'test123',
@@ -502,7 +502,7 @@ class TestRegisterController(UnitTestBase):
 
 
         request = self.get_csrf_request(post={
-            'User_name': 'admin',
+            'Username': 'admin',
             'Password': {
                 'Password': 'test123',
                 'Password-confirm': 'test123',
@@ -548,7 +548,7 @@ class TestRegisterController(UnitTestBase):
         self.config.add_route('index', '/')
 
         request = self.get_csrf_request(post={
-            'User_name': 'admin',
+            'Username': 'admin',
             'Password': {
                 'Password': 'test123',
                 'Password-confirm': 'test123',
@@ -640,7 +640,7 @@ class TestRegisterController(UnitTestBase):
             if key == 'code':
                 return user1.activation.code
             else:
-                return user1.pk
+                return user1.id
 
         request.matchdict.get = get
 
@@ -727,7 +727,7 @@ class TestRegisterController(UnitTestBase):
             if val == 'code':
                 return bad_act.code
             elif val == 'user_pk':
-                return user.pk
+                return user.id
 
         request.matchdict.get = get
 
@@ -1089,7 +1089,7 @@ class TestProfileController(UnitTestBase):
 
         request.matchdict = Mock()
         get = Mock()
-        get.return_value = user.pk
+        get.return_value = user.id
         request.matchdict.get = get
 
 
@@ -1162,7 +1162,7 @@ class TestProfileController(UnitTestBase):
 
         request.matchdict = Mock()
         get = Mock()
-        get.return_value = user.pk
+        get.return_value = user.id
         request.matchdict.get = get
 
 
@@ -1214,13 +1214,13 @@ class TestProfileController(UnitTestBase):
 
         request.matchdict = Mock()
         get = Mock()
-        get.return_value = user.pk
+        get.return_value = user.id
         request.matchdict.get = get
 
         view = ProfileController(request)
         view.profile()
 
-        new_user = User.get_by_pk(request, user.pk)
+        new_user = User.get_by_id(request, user.id)
 
         assert new_user.email == 'sontek@gmail.com'
         assert crypt.check(user.password, 'temp' + user.salt)
@@ -1267,7 +1267,7 @@ class TestProfileController(UnitTestBase):
 
         request.matchdict = Mock()
         get = Mock()
-        get.return_value = user.pk
+        get.return_value = user.id
         request.matchdict.get = get
 
         flash = Mock()
@@ -1276,7 +1276,7 @@ class TestProfileController(UnitTestBase):
         view = ProfileController(request)
 
         view.edit_profile()
-        new_user = User.get_by_pk(request, user.pk)
+        new_user = User.get_by_id(request, user.id)
 
         assert new_user.email == 'sontek@gmail.com'
         assert not crypt.check(user.password, 'temp' + user.salt)
