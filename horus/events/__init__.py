@@ -25,10 +25,13 @@ class ProfileUpdatedEvent(BaseEvent):
         super(ProfileUpdatedEvent, self).__init__(request, user_account)
         self.values = values
 
-class VelruseAccountCreated(BaseEvent):
+class LoggedInEvent(BaseEvent):
+    pass
+
+class VelruseAccountCreatedEvent(BaseEvent):
     def __init__(self, request, user_account, velruse_payload):
-        super(VelruseAccountCreated, self).__init__(request, user_account)
+        super(VelruseAccountCreatedEvent, self).__init__(request, user_account)
         self.velruse_payload = velruse_payload
 
-class VelruseAccountLoggedIn(BaseEvent):
+class VelruseAccountLoggedInEvent(BaseEvent):
     pass

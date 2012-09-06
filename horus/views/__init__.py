@@ -27,8 +27,9 @@ from horus.events           import NewRegistrationEvent
 from horus.events           import RegistrationActivatedEvent
 from horus.events           import PasswordResetEvent
 from horus.events           import ProfileUpdatedEvent
-from horus.events           import VelruseAccountCreated
-from horus.events           import VelruseAccountLoggedIn
+from horus.events           import LoggedInEvent
+from horus.events           import VelruseAccountCreatedEvent
+from horus.events           import VelruseAccountLoggedInEvent
 from hem.db                 import get_session
 from horus.lib              import generate_velruse_forms
 from horus.lib              import openid_from_token
@@ -42,15 +43,19 @@ import logging
 
 log = logging.getLogger(__name__)
 
-def authenticated(request, id):
+def authenticated(request, user_account):
     """ This sets the auth cookies and redirects to the page defined
         in horus.login_redirect, defaults to a view named 'index'.
         If a ``came_from`` request parameter is found, this value is used
         for redirection instead.
     """
     settings = request.registry.settings
-    headers = remember(request, id)
+    headers = remember(request, user_account.id)
     autologin = asbool(settings.get('horus.autologin', False))
+
+    request.registry.notify(
+        LoggedInEvent(request, user_account)
+    )
 
     if not autologin:
         request.session.flash(translate( u"Logged in successfully.", request), 'success')
@@ -160,7 +165,7 @@ class AuthController(BaseController):
                             self.request.session.flash(self.translate(u'Your account is not active, please check your e-mail.'), 'error')
                             return {'form': self.form.render()}
 
-                return authenticated(self.request, user_account.id)
+                return authenticated(self.request, user_account)
 
             self.request.session.flash(self.translate(u"Invalid username or password."), 'error')
 
@@ -225,7 +230,7 @@ class AuthController(BaseController):
                     self.db.add(user)
                     self.db.flush()
                     self.request.registry.notify(
-                        VelruseAccountCreated(self.request, user_account, auth)
+                        VelruseAccountCreatedEvent(self.request, user_account, auth)
                     )
                 else:
                     if user and user != user_account.user:
@@ -235,10 +240,10 @@ class AuthController(BaseController):
                     self.db.flush()
 
                 self.request.registry.notify(
-                    VelruseAccountLoggedIn(self.request, user_account)
+                    VelruseAccountLoggedInEvent(self.request, user_account)
                 )
                 if user_account.user.active is True:
-                    return authenticated(self.request, user_account.id)
+                    return authenticated(self.request, user_account)
                 else:
                     log.warn("Velruse login failed, user is not active!")
                     self.request.session.flash(self.translate(u"Login failed"), 'error')
@@ -428,7 +433,7 @@ class RegisterController(BaseController):
             if autologin:
                 self.db.flush()
 
-                return authenticated(self.request, user_account.id)
+                return authenticated(self.request, user_account)
 
             return HTTPFound(location=self.register_redirect_view)
 
