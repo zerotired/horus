@@ -60,8 +60,16 @@ def authenticated(request, user_account):
     if not autologin:
         request.session.flash(translate( u"Logged in successfully.", request), 'success')
 
-    login_redirect_view = route_url(settings.get('horus.login_redirect', 'index'), request)
-    login_redirect_view = request.params.get('came_from', login_redirect_view)
+    # first try from query params
+    login_redirect_view = request.params.get('came_from')
+    # next from session (and delete the key if exists)
+    if not login_redirect_view:
+        login_redirect_view = request.session.get('came_from')
+        if login_redirect_view:
+            del request.session['came_from']
+    # last fallback to configured url
+    if not login_redirect_view:
+        login_redirect_view = route_url(settings.get('horus.login_redirect', 'index'), request)
 
     return HTTPFound(location=login_redirect_view, headers=headers)
 
@@ -134,10 +142,15 @@ class AuthController(BaseController):
 
     @view_config(route_name='horus_login', renderer='horus:templates/login.mako', permission=NO_PERMISSION_REQUIRED)
     def login(self):
-        if self.request.method == 'GET':
-            if self.request.user_account:
-                return HTTPFound(location=self.login_redirect_view)
+        if self.request.user_account:
+            return HTTPFound(location=self.login_redirect_view)
 
+        # save 'came_from' to session because a query param would not survive a velruse login
+        came_from = self.request.params.get('came_from')
+        if came_from:
+            self.request.session['came_from'] = came_from
+
+        if self.request.method == 'GET':
             return {'form': self.form.render(), 'velruse_forms': self.velruse_forms}
         elif self.request.method == 'POST':
             try:
