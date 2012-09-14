@@ -20,6 +20,7 @@ import re
 import urllib
 import hashlib
 import sqlalchemy as sa
+from horus.interfaces import IHorusUserAccountClass
 
 
 _ = TranslationStringFactory('horus')
@@ -162,20 +163,22 @@ class UserMixin(BaseModel):
         """ Return an account of the user """
         session = get_session(request)
 
+        UserAccount = request.registry.queryUtility(IHorusUserAccountClass)
+
         if provider is None:
             """ Return the first one found """
-            return session.query(UserAccountMixin).filter(
+            return session.query(UserAccount).filter(
                 and_(
-                    UserAccountMixin.user_id == self.id,
+                    UserAccount.user_id == self.id,
                 )
             ).first()
 
         else:
             """ Return a specified one """
-            return session.query(UserAccountMixin).filter(
+            return session.query(UserAccount).filter(
                 and_(
-                    UserAccountMixin.user_id == self.id,
-                    func.lower(UserAccountMixin.provider) == provider.lower(),
+                    UserAccount.user_id == self.id,
+                    func.lower(UserAccount.provider) == provider.lower(),
                 )
             ).first()
 
