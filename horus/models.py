@@ -141,7 +141,7 @@ class UserMixin(BaseModel):
     @declared_attr
     def display_name(self):
         """ Display name """
-        return sa.Column(sa.Unicode(80), default=u'')
+        return sa.Column(sa.Unicode(), default=u'')
 
     @declared_attr
     def active(self):
@@ -207,7 +207,7 @@ class UserAccountMixin(BaseModel):
     @declared_attr
     def username(self):
         """ Username, unique constraint with `provider` """
-        return sa.Column(sa.Unicode(30), nullable=False, index=True)
+        return sa.Column(sa.Unicode(30), nullable=True, index=True)
 
     @declared_attr
     def openid(self):
@@ -217,7 +217,7 @@ class UserAccountMixin(BaseModel):
     @declared_attr
     def provider(self):
         """ Account provider ('local' or eg. 'facebook')"""
-        return sa.Column(sa.Unicode(80), default=u'local', nullable=False, index=True)
+        return sa.Column(sa.Unicode(80), default='local', nullable=False, index=True)
 
     @declared_attr
     def email(self):
@@ -321,7 +321,7 @@ class UserAccountMixin(BaseModel):
         return session.query(cls).filter(
             and_(
                 func.lower(cls.email) == email.lower(),
-                cls.provider == u'local',
+                cls.provider == 'local',
             )
         ).first()
 
@@ -332,7 +332,7 @@ class UserAccountMixin(BaseModel):
         return session.query(cls).filter(
             and_(
                 func.lower(cls.username) == username.lower(),
-                cls.provider == u'local',
+                cls.provider == 'local',
             )
         ).first()
 
@@ -357,7 +357,7 @@ class UserAccountMixin(BaseModel):
                     func.lower(cls.username) == username.lower(),
                     cls.email == email
                 ),
-                cls.provider == u'local',
+                cls.provider == 'local',
             )
         ).first()
 
