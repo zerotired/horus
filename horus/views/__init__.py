@@ -53,23 +53,28 @@ def authenticated(request, user_account):
     headers = remember(request, user_account.id)
     autologin = asbool(settings.get('horus.autologin', False))
 
+    loggedin_event = LoggedInEvent(request, user_account)
     request.registry.notify(
-        LoggedInEvent(request, user_account)
+        loggedin_event
     )
 
-    if not autologin:
-        request.session.flash(translate( u"Logged in successfully.", request), 'success')
-
-    # first try from query params
+    # resolve `came_from` first try from query params
     login_redirect_view = request.params.get('came_from')
     # next from session (and delete the key if exists)
     if not login_redirect_view:
         login_redirect_view = request.session.get('came_from')
         if login_redirect_view:
             del request.session['came_from']
-    # last fallback to configured url
+        # last fallback to configured url
     if not login_redirect_view:
         login_redirect_view = route_url(settings.get('horus.login_redirect', 'index'), request)
+
+    if hasattr(loggedin_event, 'location'):
+        location = "%s?came_from=%s" % (loggedin_event.location, login_redirect_view)
+        return HTTPFound(location=location, headers=headers)
+
+    if not autologin:
+        request.session.flash(translate( u"Logged in successfully.", request), 'success')
 
     return HTTPFound(location=login_redirect_view, headers=headers)
 
@@ -180,7 +185,7 @@ class AuthController(BaseController):
 
                 return authenticated(self.request, user_account)
 
-            self.request.session.flash(self.translate(u"Invalid username or password."), 'error')
+            self.request.session.flash(self.translate(u"Invalid username/email or password."), 'error')
 
             return {'form': self.form.render(appstruct=captured)}
 
@@ -245,6 +250,8 @@ class AuthController(BaseController):
                     self.request.registry.notify(
                         VelruseAccountCreatedEvent(self.request, user_account, auth)
                     )
+                elif not user_account.is_activated:
+                    self.request.session.flash(self.translate(u'Your account is not active, please check your e-mail.'), 'error')
                 else:
                     if user and user != user_account.user:
                         user_account.user = user
@@ -255,7 +262,7 @@ class AuthController(BaseController):
                 self.request.registry.notify(
                     VelruseAccountLoggedInEvent(self.request, user_account)
                 )
-                if user_account.user.active is True:
+                if user_account.user.active is True and user_account.is_activated:
                     return authenticated(self.request, user_account)
                 else:
                     log.warn("Velruse login failed, user is not active!")
@@ -453,23 +460,23 @@ class RegisterController(BaseController):
     @view_config(route_name='horus_activate')
     def activate(self):
         code = self.request.matchdict.get('code', None)
-        user_pk = self.request.matchdict.get('user_pk', None)
+        user_account_id = self.request.matchdict.get('user_account_id', None)
 
         activation = self.Activation.get_by_code(self.request, code)
 
         if activation:
-            user = self.UserAccount.get_by_id(self.request, user_pk)
+            user_account = self.UserAccount.get_by_id(self.request, user_account_id)
 
-            if user.activation != activation:
+            if user_account.activation != activation:
                 return HTTPNotFound()
 
-            if user:
+            if user_account:
                 self.db.delete(activation)
-                self.db.add(user)
+                self.db.add(user_account)
                 self.db.flush()
 
                 self.request.registry.notify(
-                    RegistrationActivatedEvent(self.request, user, activation)
+                    RegistrationActivatedEvent(self.request, user_account, activation)
                 )
 
                 self.request.session.flash(self.translate(u"Your e-mail address has been verified."), 'success')
