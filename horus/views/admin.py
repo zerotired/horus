@@ -1,20 +1,28 @@
+from pyramid.settings import asbool
 from horus.views            import BaseController
 from horus.views            import translate
 from horus.schemas          import AdminUserSchema
 from horus.forms            import HorusForm
 from pyramid.view           import view_config
-from pyramid.httpexceptions import HTTPFound
+from pyramid.httpexceptions import HTTPFound, HTTPNotImplemented
 from pyramid.i18n           import TranslationStringFactory
 
 import deform
 
 class AdminController(BaseController):
+
+    def __init__(self, request):
+        super(AdminController, self).__init__(request)
+        self.enabled = asbool(self.settings.get('horus.enable_admin_views', True))
+
     @view_config(
             route_name='horus_admin_users_create',
             renderer='horus:templates/admin/create_user.mako',
             permission='admin'
     )
     def create_user(self):
+        if self.enabled is False:
+            return HTTPNotImplemented()
         schema = AdminUserSchema()
         schema = schema.bind(request=self.request)
         form = HorusForm(schema)
@@ -50,4 +58,6 @@ class AdminController(BaseController):
             permission='admin'
     )
     def list(self):
-        return dict(users=self.UserAccount.get_all(self.request))
+        if self.enabled is False:
+            return HTTPNotImplemented()
+        return dict(user_accounts=self.UserAccount.get_all(self.request))

@@ -3,7 +3,7 @@ from pyramid.url            import route_url
 from pyramid.security       import remember
 from pyramid.security       import forget
 from pyramid.security       import NO_PERMISSION_REQUIRED
-from pyramid.httpexceptions import HTTPFound
+from pyramid.httpexceptions import HTTPFound, HTTPNotImplemented
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.settings       import asbool
 
@@ -275,11 +275,17 @@ class ForgotPasswordController(BaseController):
     def __init__(self, request):
         super(ForgotPasswordController, self).__init__(request)
 
+        self.enabled = asbool(self.settings.get('horus.enable_password_views', True))
+        if self.enabled is False:
+            return
+
         self.forgot_password_redirect_view = route_url(self.settings.get('horus.forgot_password_redirect', 'index'), request)
         self.reset_password_redirect_view = route_url(self.settings.get('horus.reset_password_redirect', 'index'), request)
 
     @view_config(route_name='horus_forgot_password', renderer='horus:templates/forgot_password.mako')
     def forgot_password(self):
+        if self.enabled is False:
+            return HTTPNotImplemented()
         schema = self.request.registry.getUtility(IHorusForgotPasswordSchema)
         schema = schema().bind(request=self.request)
 
@@ -327,6 +333,8 @@ class ForgotPasswordController(BaseController):
 
     @view_config(route_name='horus_reset_password', renderer='horus:templates/reset_password.mako')
     def reset_password(self):
+        if self.enabled is False:
+            return HTTPNotImplemented()
         schema = self.request.registry.getUtility(IHorusResetPasswordSchema)
         schema = schema().bind(request=self.request)
 
@@ -387,12 +395,16 @@ class RegisterController(BaseController):
         self.activate_redirect_view = route_url(self.settings.get('horus.activate_redirect', 'index'), request)
 
         self.require_activation = asbool(self.settings.get('horus.require_activation', True))
+        self.allow_registration = asbool(self.settings.get('horus.allow_registration', True))
 
         if self.require_activation:
             self.mailer = get_mailer(request)
 
     @view_config(route_name='horus_register', renderer='horus:templates/register.mako')
     def register(self):
+        if self.allow_registration is False:
+            return HTTPNotImplemented()
+
         if self.request.method == 'GET':
             if self.request.user:
                 return HTTPFound(location=self.register_redirect_view)
@@ -489,6 +501,10 @@ class ProfileController(BaseController):
     def __init__(self, request):
         super(ProfileController, self).__init__(request)
 
+        self.enabled = asbool(self.settings.get('horus.enable_profile_views', True))
+        if self.enabled is False:
+            return
+
         schema = self.request.registry.getUtility(IHorusProfileSchema)
         self.schema = schema().bind(request=self.request)
 
@@ -496,8 +512,12 @@ class ProfileController(BaseController):
         self.form = form(self.schema)
 
 
+
     @view_config(route_name='horus_profile', renderer='horus:templates/profile.mako')
     def profile(self):
+        if self.enabled is False:
+            return HTTPNotImplemented()
+
         pk = self.request.matchdict.get('user_account_id', None)
 
         user = self.UserAccount.get_by_id(self.request, pk)
@@ -510,6 +530,8 @@ class ProfileController(BaseController):
     @view_config(permission='access_user_account', route_name='horus_edit_profile',
         renderer='horus:templates/edit_profile.mako')
     def edit_profile(self):
+        if self.enabled is False:
+            return HTTPNotImplemented()
         user = self.request.context
 
         if not user:
