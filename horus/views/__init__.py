@@ -406,7 +406,7 @@ class RegisterController(BaseController):
             return HTTPNotImplemented()
 
         if self.request.method == 'GET':
-            if self.request.user:
+            if self.request.user_account:
                 return HTTPFound(location=self.register_redirect_view)
 
             return {'form': self.form.render()}
