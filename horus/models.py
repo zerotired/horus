@@ -211,8 +211,11 @@ class UserAccountMixin(BaseModel):
 
     @declared_attr
     def openid(self):
-        """ Openid, unique constraint with `provider` """
-        return sa.Column(sa.Integer, nullable=True, index=True)
+        """ Openid, unique constraint with `provider`
+            This MUST be an CHAR unfortunately because e.g. google+ is using a 21 digit integer
+            which goes beyond the scope of an BigInteger (max 8bytes)
+        """
+        return sa.Column(sa.CHAR(24), nullable=True, index=True)
 
     @declared_attr
     def provider(self):
@@ -342,7 +345,7 @@ class UserAccountMixin(BaseModel):
 
         return session.query(cls).filter(
             and_(
-                cls.openid == openid,
+                cls.openid == str(openid),
                 cls.provider == provider,
             )
         ).first()
