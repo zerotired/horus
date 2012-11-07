@@ -30,19 +30,22 @@ def generate_velruse_forms(request, came_from, provider_form=ProviderForm, butto
     """
     buttons = buttons and buttons or {}
     velruse_forms = []
-    providers = request.registry.settings.get('horus.velruse.providers', None)
+    providers = request.registry.settings.get('login_providers', None)
+    if not providers:
+        providers = request.registry.settings.get('horus.providers', None)
+        providers = providers and [x.strip() for x in providers.split(',')] or None
+    provider_url_prefix = request.registry.settings.get('horus.provider.url_prefix', '/velruse/login')
     schema = AccountProviderSchema().bind(request=request)
 
 
     if providers:
-        providers = [x.strip() for x in providers.split(',')]
         for provider in providers:
-            action = '/velruse/login/%s' % provider
+            action = '%s/%s' % (provider_url_prefix, provider)
             button = (buttons.get(provider, provider),)
             form = provider_form(schema, action=action, buttons=button)
             appstruct = dict(
                 end_point='%s?csrf_token=%s&came_from=%s' %\
-                          (request.route_url('horus_velruse_callback'),\
+                          (request.route_url('horus_velruse_login_complete'),\
                            request.session.get_csrf_token(),
                            came_from),
                 csrf_token = request.session.get_csrf_token(),

@@ -214,61 +214,68 @@ class AuthController(BaseController):
 
         if 'token' in self.request.POST:
             auth = openid_from_token(self.request.POST['token'], self.request)
-            if auth:
-                auth_info = auth['profile']['accounts'][0]
-                username = auth_info.get('username',
-                                        auth['profile'].get('preferredUsername',
-                                                            auth['profile'].get('displayName')))
-                user_account = self.UserAccount.get_by_openid(self.request, int(auth_info['userid']), auth_info['domain'])
-                user = None
+        elif self.request.context is not None:
+            auth = {
+                'profile': self.request.context.profile,
+                'credentials': self.request.context.credentials,
+            }
+        if auth:
+            auth_info = auth['profile']['accounts'][0]
+            username = auth_info.get('username',
+                                    auth['profile'].get('preferredUsername',
+                                                        auth['profile'].get('displayName')))
+            user_account = self.UserAccount.get_by_openid(self.request, auth_info['userid'], auth_info['domain'])
+            user = None
+            new_account = False
 
-                # If the user is already logged in via a different account,
-                # associate the new user_account with that user
-                logged_in_user_account = self.request.user_account
-                logged_in_user_email = None
-                if logged_in_user_account and logged_in_user_account != user_account:
-                    log.debug("User is logged in, associate the new account of provider %s", auth_info['domain'])
-                    user = logged_in_user_account.user
-                    if user.display_name is None or user.display_name == u'':
-                        user.display_name = auth['profile'].get('displayName', u'')
-                    logged_in_user_email = logged_in_user_account.email
+            # If the user is already logged in via a different account,
+            # associate the new user_account with that user
+            logged_in_user_account = self.request.user_account
+            logged_in_user_email = None
+            if logged_in_user_account and logged_in_user_account != user_account:
+                log.debug("User is logged in, associate the new account of provider %s", auth_info['domain'])
+                user = logged_in_user_account.user
+                if user.display_name is None or user.display_name == u'':
+                    user.display_name = auth['profile'].get('displayName', u'')
+                logged_in_user_email = logged_in_user_account.email
 
-                if not user_account:
-                    if not user:
-                        user = self.User(display_name=auth['profile'].get('displayName', u''))
-                    user_account = self.UserAccount(
-                        username=username,
-                        openid=int(auth_info['userid']),
-                        provider=auth_info['domain'],
-                        email=logged_in_user_email
-                    )
-                    if auth['profile'].has_key('verifiedEmail') and not user_account.email:
-                        user_account.email = auth['profile']['verifiedEmail']
-                    user.accounts.append(user_account)
-                    self.db.add(user)
-                    self.db.flush()
-                    self.request.registry.notify(
-                        VelruseAccountCreatedEvent(self.request, user_account, auth)
-                    )
-                elif not user_account.is_activated:
-                    self.request.session.flash(self.translate(u'Your account is not active, please check your e-mail.'), 'error')
-                else:
-                    if user and user != user_account.user:
-                        user_account.user = user
-                    user_account.email = user_account.email and user_account.email or logged_in_user_email
-                    self.db.add(user_account)
-                    self.db.flush()
-
-                self.request.registry.notify(
-                    VelruseAccountLoggedInEvent(self.request, user_account)
+            if not user_account:
+                if not user:
+                    user = self.User(display_name=auth['profile'].get('displayName', u''))
+                user_account = self.UserAccount(
+                    username=username,
+                    openid=int(auth_info['userid']),
+                    provider=auth_info['domain'],
+                    email=logged_in_user_email
                 )
-                if user_account.user.active is True and user_account.is_activated:
-                    return authenticated(self.request, user_account)
-                else:
-                    log.warn("Velruse login failed, user is not active!")
-                    self.request.session.flash(self.translate(u"Login failed"), 'error')
+                if auth['profile'].has_key('verifiedEmail') and not user_account.email:
+                    user_account.email = auth['profile']['verifiedEmail']
+                user.accounts.append(user_account)
+                self.db.add(user)
+                self.db.flush()
+                self.request.registry.notify(
+                    VelruseAccountCreatedEvent(self.request, user_account, auth)
+                )
+                new_account = True
+            elif not user_account.is_activated:
+                self.request.session.flash(self.translate(u'Your account is not active, please check your e-mail.'), 'error')
             else:
-                self.request.session.flash(self.translate(u"Login failed using external login provider"), 'error')
+                if user and user != user_account.user:
+                    user_account.user = user
+                user_account.email = user_account.email and user_account.email or logged_in_user_email
+                self.db.add(user_account)
+                self.db.flush()
+
+            self.request.registry.notify(
+                VelruseAccountLoggedInEvent(self.request, user_account)
+            )
+            if user_account.user.active is True and user_account.is_activated:
+                return authenticated(self.request, user_account, new_account)
+            else:
+                log.warn("Velruse login failed, user is not active!")
+                self.request.session.flash(self.translate(u"Login failed"), 'error')
+        else:
+            self.request.session.flash(self.translate(u"Login failed using external login provider"), 'error')
         return HTTPFound(location=redir, headers=headers)
 
 class ForgotPasswordController(BaseController):
