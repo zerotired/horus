@@ -26,7 +26,7 @@ class ProfileUpdatedEvent(BaseEvent):
         self.values = values
 
 class LoggedInEvent(BaseEvent):
-    def __init__(self, request, user_account, new_account):
+    def __init__(self, request, user_account, new_account=False):
         super(LoggedInEvent, self).__init__(request, user_account)
         self.new_account = new_account
 
