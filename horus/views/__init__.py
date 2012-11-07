@@ -43,7 +43,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
-def authenticated(request, user_account):
+def authenticated(request, user_account, new_account=False):
     """ This sets the auth cookies and redirects to the page defined
         in horus.login_redirect, defaults to a view named 'index'.
         If a ``came_from`` request parameter is found, this value is used
@@ -53,7 +53,7 @@ def authenticated(request, user_account):
     headers = remember(request, user_account.id)
     autologin = asbool(settings.get('horus.autologin', False))
 
-    loggedin_event = LoggedInEvent(request, user_account)
+    loggedin_event = LoggedInEvent(request, user_account, new_account)
     request.registry.notify(
         loggedin_event
     )
