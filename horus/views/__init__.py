@@ -202,8 +202,8 @@ class AuthController(BaseController):
 
         return HTTPFound(location=self.logout_redirect_view, headers=headers)
 
-    @view_config(route_name='horus_velruse_callback', permission=NO_PERMISSION_REQUIRED)
-    def velruse_callback(self):
+    @view_config(route_name='horus_velruse_login_complete', permission=NO_PERMISSION_REQUIRED)
+    def velruse_login_complete(self):
         """
         no return value, called with route_url('oauth_callback', request)
 

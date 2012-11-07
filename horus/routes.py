@@ -17,4 +17,4 @@ def includeme(config):
     config.add_route('horus_admin_users_create', '/admin/users/create')
     config.add_route('horus_admin_users_edit', '/admin/users/{user_account_id}')
 
-    config.add_route('horus_velruse_callback', '/velruse_callback')
+    config.add_route('horus_velruse_login_complete', '/login/complete')
