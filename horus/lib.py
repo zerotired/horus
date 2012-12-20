@@ -29,7 +29,7 @@ def generate_velruse_forms(request, came_from, provider_form=ProviderForm, butto
     the CONFIG.yaml file
     """
     buttons = buttons and buttons or {}
-    velruse_forms = []
+    velruse_forms = dict()
     providers = request.registry.settings.get('login_providers', None)
     if not providers:
         providers = request.registry.settings.get('horus.providers', None)
@@ -51,7 +51,7 @@ def generate_velruse_forms(request, came_from, provider_form=ProviderForm, butto
                 csrf_token = request.session.get_csrf_token(),
                 came_from = came_from,
             )
-            velruse_forms.append(form.render(appstruct))
+            velruse_forms[provider] = {'form': form, 'appstruct': appstruct}
     return velruse_forms
 
 
