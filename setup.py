@@ -33,12 +33,12 @@ requires = [
     , 'pyramid_mailer'
     , 'beaker'
     , 'pyramid_beaker'
-    , 'hem==dev'
+    , 'hem>=0.3'
     , 'psycopg2'
 ]
 
 setup(name='horus'
-      , version='0.0.16'
+      , version='0.0.17'
       , description='Generic user registration for pyramid'
       , long_description=README + '\n\n' +  CHANGES
       , classifiers=[
@@ -62,7 +62,7 @@ setup(name='horus'
       , cmdclass = {'test': PyTest}
       , test_suite='horus'
       , dependency_links = [
-            'https://github.com/eventray/hem/tarball/master#egg=hem-dev'
+            'https://github.com/eventray/hem/tarball/master#egg=hem-0.3'
         ]
       , message_extractors = {
             'horus': [
