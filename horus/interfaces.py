@@ -21,7 +21,13 @@ class IHorusLoginForm(Interface):
 class IHorusRegisterSchema(Interface):
     pass
 
+class IHorusRegisterEmailSchema(Interface):
+    pass
+
 class IHorusRegisterForm(Interface):
+    pass
+
+class IHorusRegisterEmailForm(Interface):
     pass
 
 class IHorusForgotPasswordForm(Interface):

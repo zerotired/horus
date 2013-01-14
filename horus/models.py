@@ -429,7 +429,7 @@ class GroupMixin(BaseModel):
         return sa.orm.relationship(
             'User'
             , secondary=UserGroupMixin.__tablename__
-#            , order_by='%s.user.user_name' % UserMixin.__tablename__
+#            , order_by='%s.user.username' % UserMixin.__tablename__
             , passive_deletes=True
             , passive_updates=True
             , backref=GroupMixin.__tablename__

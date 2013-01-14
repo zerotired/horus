@@ -10,7 +10,7 @@ from pyramid.settings       import asbool
 from pyramid_mailer         import get_mailer
 from pyramid_mailer.message import Message
 
-from horus.interfaces       import IHorusUserClass
+from horus.interfaces       import IHorusUserClass, IHorusRegisterEmailSchema, IHorusRegisterEmailForm
 from horus.interfaces       import IHorusUserAccountClass
 from horus.interfaces       import IHorusActivationClass
 from horus.interfaces       import IHorusLoginForm
@@ -53,11 +53,6 @@ def authenticated(request, user_account, new_account=False):
     headers = remember(request, user_account.id)
     autologin = asbool(settings.get('horus.autologin', False))
 
-    loggedin_event = LoggedInEvent(request, user_account, new_account)
-    request.registry.notify(
-        loggedin_event
-    )
-
     # resolve `came_from` first try from query params
     login_redirect_view = request.params.get('came_from')
     # next from session (and delete the key if exists)
@@ -68,10 +63,6 @@ def authenticated(request, user_account, new_account=False):
         # last fallback to configured url
     if not login_redirect_view:
         login_redirect_view = route_url(settings.get('horus.login_redirect', 'index'), request)
-
-    if hasattr(loggedin_event, 'location'):
-        location = "%s?came_from=%s" % (loggedin_event.location, login_redirect_view)
-        return HTTPFound(location=location, headers=headers)
 
     if not autologin:
         request.session.flash(translate( u"Logged in successfully.", request), 'success')
@@ -94,7 +85,10 @@ def create_activation(request, user_account, route_name='horus_activate',
     if body is None:
         body = pystache.render(template,
             {
-                'link': request.route_url(route_name, user_account_id=user_account.id, code=user_account.activation.code)
+                'link': "{0}?came_from={1}".format(
+                    request.route_url(route_name, user_account_id=user_account.id, code=user_account.activation.code),
+                    request.route_url(request.registry.settings.get('horus.activate_redirect', 'index'), user_account_id=user_account.id)
+                )
             }
         )
 
@@ -392,17 +386,17 @@ class ForgotPasswordController(BaseController):
 class RegisterController(BaseController):
     def __init__(self, request):
         super(RegisterController, self).__init__(request)
-        schema = request.registry.getUtility(IHorusRegisterSchema)
+        schema = request.registry.getUtility(IHorusRegisterEmailSchema)
         self.schema = schema().bind(request=self.request)
 
-        form = request.registry.getUtility(IHorusRegisterForm)
+        form = request.registry.getUtility(IHorusRegisterEmailForm)
         self.form = form(self.schema)
 
         self.register_redirect_view = route_url(self.settings.get('horus.register_redirect', 'index'), request)
-        self.activate_redirect_view = route_url(self.settings.get('horus.activate_redirect', 'index'), request)
 
         self.require_activation = asbool(self.settings.get('horus.require_activation', True))
         self.allow_registration = asbool(self.settings.get('horus.allow_registration', True))
+        self.login_after_activation = asbool(self.settings.get('horus.login_after_activation', False))
 
         if self.require_activation:
             self.mailer = get_mailer(request)
@@ -426,6 +420,8 @@ class RegisterController(BaseController):
                 return {'form': e.render(), 'errors': e.error.children}
 
             email = captured['Email']
+            if not hasattr(captured,'Username'):
+                captured['Username'] = captured['Email']
             username = captured['Username'].lower()
             password = captured['Password']
 
@@ -446,10 +442,13 @@ class RegisterController(BaseController):
             activation = None
 
             try:
-                user_account = self.UserAccount(user_name=username, email=email)
-                user_account.set_password(password)
 
-                self.db.add(user_account)
+                user = self.User(active=False, email=email)
+                user_account = self.UserAccount(username=username, email=email, password=password)
+                user.accounts.append(user_account)
+
+                self.db.add(user)
+
 
                 if self.require_activation:
                     # SEND EMAIL ACTIVATION
@@ -490,6 +489,7 @@ class RegisterController(BaseController):
                 return HTTPNotFound()
 
             if user_account:
+                user_account.user.active = True
                 self.db.delete(activation)
                 self.db.add(user_account)
                 self.db.flush()
@@ -499,6 +499,12 @@ class RegisterController(BaseController):
                 )
 
                 self.request.session.flash(self.translate(u"Your e-mail address has been verified."), 'success')
+
+                if self.login_after_activation:
+                    headers = remember(self.request, user_account.id)
+                    self.request.response.headerlist.extend(headers)
+                    return authenticated(self.request, user_account)
+
                 return HTTPFound(location=self.activate_redirect_view)
 
         return HTTPNotFound()

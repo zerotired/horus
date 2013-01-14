@@ -1,12 +1,12 @@
 from anykeystore.store import create_store_from_settings
-from horus.schemas      import LoginSchema
+from horus.schemas      import LoginSchema, RegisterEmailSchema
 from horus.schemas      import RegisterSchema
 from horus.schemas      import ForgotPasswordSchema
 from horus.schemas      import ResetPasswordSchema
 from horus.schemas      import ProfileSchema
 from horus.forms        import SubmitForm
 from horus.resources    import RootFactory
-from horus.interfaces   import IHorusUserClass
+from horus.interfaces   import IHorusUserClass, IHorusRegisterEmailSchema, IHorusRegisterEmailForm
 from horus.interfaces   import IHorusUserAccountClass
 from horus.interfaces   import IHorusGroupClass
 from horus.interfaces   import IHorusActivationClass
@@ -78,13 +78,14 @@ def includeme(config):
     schemas = [
         (IHorusLoginSchema, LoginSchema),
         (IHorusRegisterSchema, RegisterSchema),
+        (IHorusRegisterEmailSchema, RegisterEmailSchema),
         (IHorusForgotPasswordSchema, ForgotPasswordSchema),
         (IHorusResetPasswordSchema, ResetPasswordSchema),
         (IHorusProfileSchema, ProfileSchema)
     ]
 
     forms = [
-        IHorusLoginForm, IHorusRegisterForm, IHorusForgotPasswordForm,
+        IHorusLoginForm, IHorusRegisterForm, IHorusRegisterEmailForm, IHorusForgotPasswordForm,
         IHorusResetPasswordForm, IHorusProfileForm
     ]
 

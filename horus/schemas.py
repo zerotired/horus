@@ -34,6 +34,19 @@ class RegisterSchema(CSRFSchema):
         widget=deform.widget.CheckedPasswordWidget()
     )
 
+class RegisterEmailSchema(CSRFSchema):
+    Email = colander.SchemaNode(
+        colander.String(),
+        title=_(u"Email"),
+        validator=colander.Email()
+    )
+    Password = colander.SchemaNode(
+        colander.String(),
+        title=_(u"Password"),
+        validator=colander.Length(min=2),
+        widget=deform.widget.CheckedPasswordWidget()
+    )
+
 class ForgotPasswordSchema(CSRFSchema):
     Email = colander.SchemaNode(
         colander.String(),
