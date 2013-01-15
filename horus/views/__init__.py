@@ -53,6 +53,11 @@ def authenticated(request, user_account, new_account=False):
     headers = remember(request, user_account.id)
     autologin = asbool(settings.get('horus.autologin', False))
 
+    loggedin_event = LoggedInEvent(request, user_account, new_account)
+    request.registry.notify(
+        loggedin_event
+    )
+
     # resolve `came_from` first try from query params
     login_redirect_view = request.params.get('came_from')
     # next from session (and delete the key if exists)
@@ -60,9 +65,13 @@ def authenticated(request, user_account, new_account=False):
         login_redirect_view = request.session.get('came_from')
         if login_redirect_view:
             del request.session['came_from']
-        # last fallback to configured url
+            # last fallback to configured url
     if not login_redirect_view:
         login_redirect_view = route_url(settings.get('horus.login_redirect', 'index'), request)
+
+    if hasattr(loggedin_event, 'location'):
+        location = "%s?came_from=%s" % (loggedin_event.location, login_redirect_view)
+        return HTTPFound(location=location, headers=headers)
 
     if not autologin:
         request.session.flash(translate( u"Logged in successfully.", request), 'success')
@@ -85,10 +94,7 @@ def create_activation(request, user_account, route_name='horus_activate',
     if body is None:
         body = pystache.render(template,
             {
-                'link': "{0}?came_from={1}".format(
-                    request.route_url(route_name, user_account_id=user_account.id, code=user_account.activation.code),
-                    request.route_url(request.registry.settings.get('horus.activate_redirect', 'index'), user_account_id=user_account.id)
-                )
+                'link': request.route_url(route_name, user_account_id=user_account.id, code=user_account.activation.code)
             }
         )
 
