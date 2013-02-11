@@ -402,7 +402,7 @@ class UserAccountMixin(BaseModel):
         return valid
 
     def __repr__(self):
-        display_name = self.openid and '%s:%i' % (self.provider, self.openid) \
+        display_name = self.openid and '%s:%s' % (self.provider, self.openid) \
                             or self.username
         return '<UserAccount: %s>' % display_name
 
