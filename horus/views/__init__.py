@@ -245,6 +245,11 @@ class AuthController(BaseController):
                 )
                 if auth['profile'].has_key('verifiedEmail') and not user_account.email:
                     user_account.email = auth['profile']['verifiedEmail']
+                if not user_account.email and auth['profile'].has_key('emails'):
+                    if auth['profile']['emails']:
+                        user_account.email = auth['profile']['emails'][0]
+                if not user.email:
+                    user.email = user_account.email
                 user.accounts.append(user_account)
                 self.db.add(user)
                 self.db.flush()
