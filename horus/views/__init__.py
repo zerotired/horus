@@ -214,7 +214,6 @@ class AuthController(BaseController):
 
         if 'token' in self.request.POST:
             auth = openid_from_token(self.request.POST['token'], self.request)
-        if auth:
             auth_info = auth['profile']['accounts'][0]
             username = auth_info.get('username',
                                     auth['profile'].get('preferredUsername',
