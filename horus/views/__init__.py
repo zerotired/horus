@@ -214,11 +214,6 @@ class AuthController(BaseController):
 
         if 'token' in self.request.POST:
             auth = openid_from_token(self.request.POST['token'], self.request)
-        elif self.request.context is not None:
-            auth = {
-                'profile': self.request.context.profile,
-                'credentials': self.request.context.credentials,
-            }
         if auth:
             auth_info = auth['profile']['accounts'][0]
             username = auth_info.get('username',
