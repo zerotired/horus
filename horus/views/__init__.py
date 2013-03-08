@@ -518,7 +518,11 @@ class RegisterController(BaseController):
 
                 return HTTPFound(location=self.activate_redirect_view)
 
-        return HTTPNotFound()
+        else:
+            self.request.session.flash(self.translate(u"This activation may already be done."), 'success')
+
+
+        raise HTTPNotFound()
 
 
 class ProfileController(BaseController):
