@@ -211,6 +211,7 @@ class AuthController(BaseController):
         """
         redir = self.request.GET.get('came_from', self.login_redirect_view)
         headers = []
+        auth = None
 
         if 'token' in self.request.POST:
             auth = openid_from_token(self.request.POST['token'], self.request)
