@@ -15,8 +15,6 @@ from horus.interfaces       import IHorusUserAccountClass
 from horus.interfaces       import IHorusActivationClass
 from horus.interfaces       import IHorusLoginForm
 from horus.interfaces       import IHorusLoginSchema
-from horus.interfaces       import IHorusRegisterForm
-from horus.interfaces       import IHorusRegisterSchema
 from horus.interfaces       import IHorusForgotPasswordForm
 from horus.interfaces       import IHorusForgotPasswordSchema
 from horus.interfaces       import IHorusResetPasswordForm
@@ -79,7 +77,7 @@ def authenticated(request, user_account, new_account=False):
     return HTTPFound(location=login_redirect_view, headers=headers)
 
 def create_activation(request, user_account, route_name='horus_activate',
-                      template=None, subject=None, body=None):
+                      template=None, subject=None, body=None, send_mail=True):
     template = template and template or translate(u"Please activate your e-mail address by visiting {{ link }}", request)
     subject = subject and subject or translate(u"Please activate your e-mail address!", request)
     db = get_session(request)
@@ -91,22 +89,23 @@ def create_activation(request, user_account, route_name='horus_activate',
 
     db.flush()
 
-    if body is None:
-        body = pystache.render(template,
-            {
-                'link': request.route_url(route_name, user_account_id=user_account.id, code=user_account.activation.code)
-            }
-        )
+    if send_mail:
+        if body is None:
+            body = pystache.render(template,
+                                   {
+                                       'link': request.route_url(route_name, user_account_id=user_account.id, code=user_account.activation.code)
+                                   }
+            )
 
-    subject = subject
+        subject = subject
 
-    message = Message(subject=subject, recipients=[user_account.email], body=body)
+        message = Message(subject=subject, recipients=[user_account.email], body=body)
 
-    mailer = get_mailer(request)
-    if request.registry.settings.get('mail.queue_path') is not None:
-        mailer.send_to_queue(message)
-    else:
-        mailer.send(message)
+        mailer = get_mailer(request)
+        if request.registry.settings.get('mail.queue_path') is not None:
+            mailer.send_to_queue(message)
+        else:
+            mailer.send(message)
 
 
 class BaseController(object):
@@ -167,21 +166,20 @@ class AuthController(BaseController):
             username = captured['Username']
             password = captured['Password']
 
-            allow_email_auth = self.settings.get('horus.allow_email_auth', False)
-
-            user_account = self.UserAccount.get_account(self.request, username, password)
-
-            if allow_email_auth:
-                if not user_account:
-                    user_account = self.UserAccount.get_by_email_password(username,
-                            password)
+            user_account = self.UserAccount.get_by_email_password(self.request, username, password)
 
             if user_account:
                 if not self.allow_inactive_login:
                     if self.require_activation:
-                        if not user_account.is_activated:
+                        # facebook, google... account is always active, we check for the activation
+                        if not user_account.is_activated and not user_account.provider == "local":
                             self.request.session.flash(self.translate(u'Your account is not active, please check your e-mail.'), 'error')
                             return {'form': self.form.render()}
+                        # local account which is not activated cannot login
+                        elif not user_account.is_activated and user_account.provider == "local" and not user_account.user.active:
+                            self.request.session.flash(self.translate(u' Your account is not active, please check your e-mail.'), 'error')
+                            return {'form': self.form.render()}
+                        # else ->local account in a reset password state. is allowed to login
 
                 return authenticated(self.request, user_account)
 
@@ -219,12 +217,12 @@ class AuthController(BaseController):
             auth = {
                 'profile': self.request.context.profile,
                 'credentials': self.request.context.credentials,
-            }
+                }
         if auth:
             auth_info = auth['profile']['accounts'][0]
             username = auth_info.get('username',
-                                    auth['profile'].get('preferredUsername',
-                                                        auth['profile'].get('displayName')))
+                                     auth['profile'].get('preferredUsername',
+                                                         auth['profile'].get('displayName')))
             user_account = self.UserAccount.get_by_openid(self.request, auth_info['userid'], auth_info['domain'])
             user = None
             new_account = False
@@ -291,7 +289,7 @@ class ForgotPasswordController(BaseController):
         self.enabled = asbool(self.settings.get('horus.enable_password_views', True))
         if self.enabled is False:
             return
-
+        self.require_activation = asbool(self.settings.get('horus.require_activation', True))
         self.forgot_password_redirect_view = route_url(self.settings.get('horus.forgot_password_redirect', 'index'), request)
         self.reset_password_redirect_view = route_url(self.settings.get('horus.reset_password_redirect', 'index'), request)
 
@@ -321,22 +319,28 @@ class ForgotPasswordController(BaseController):
             email = captured['Email']
 
             user_account = self.UserAccount.get_by_email(self.request, email)
-            activation = self.Activation()
-            self.db.add(activation)
 
-            user_account.activation = activation
+            if not user_account:
+                self.request.session.flash(self.translate(u"E-mail not found"), 'success')
+                raise HTTPNotFound()
 
-            if user_account:
-                mailer = get_mailer(self.request)
-                body = pystache.render(self.translate(u"Someone has tried to reset your password, if this was you click here: {{ link }}"),
-                    {
-                        'link': route_url('horus_reset_password', self.request, code=user_account.activation.code)
-                    }
-                )
+            if self.require_activation:
+                # activation is used for beeing safe, no activation mail will be sent
+                create_activation(self.request, user_account, send_mail = False)
 
-                subject = self.translate(u"Do you want to reset your password?")
+            mailer = get_mailer(self.request)
+            body = pystache.render(self.translate(u"Someone has tried to reset your password, if this was you click here: {{ link }}"),
+                                   {
+                                       'link': route_url('horus_reset_password', self.request, code=user_account.activation.code)
+                                   }
+            )
 
-                message = Message(subject=subject, recipients=[user_account.email], body=body)
+            subject = self.translate(u"Do you want to reset your password?")
+
+            message = Message(subject=subject, recipients=[user_account.email], body=body)
+            if self.request.registry.settings.get('mail.queue_path') is not None:
+                mailer.send_to_queue(message)
+            else:
                 mailer.send(message)
 
         # we don't want to say "E-mail not registered" or anything like that
@@ -363,13 +367,13 @@ class ForgotPasswordController(BaseController):
 
             if user_account:
                 if self.request.method == 'GET':
-                        return {
-                            'form': form.render(
-                                appstruct=dict(
-                                    Username=user_account.username
-                                )
+                    return {
+                        'form': form.render(
+                            appstruct=dict(
+                                Username=user_account.username
                             )
-                        }
+                        )
+                    }
 
                 elif self.request.method == 'POST':
                     try:
@@ -381,6 +385,8 @@ class ForgotPasswordController(BaseController):
                     password = captured['Password']
 
                     user_account.password = password
+                    user_account.user.active = True
+
                     self.db.add(user_account)
                     self.db.delete(activation)
 
@@ -438,7 +444,7 @@ class RegisterController(BaseController):
             password = captured['Password']
 
             user_account = self.UserAccount.get_by_username_or_email(self.request,
-                    username, email
+                                                                     username, email
             )
 
             autologin = asbool(self.settings.get('horus.autologin', False))
@@ -476,7 +482,7 @@ class RegisterController(BaseController):
 
             self.request.registry.notify(
                 NewRegistrationEvent(self.request, user_account, activation,
-                    captured)
+                                     captured)
             )
 
 
@@ -557,7 +563,7 @@ class ProfileController(BaseController):
         return {'user': user}
 
     @view_config(permission='access_user_account', route_name='horus_edit_profile',
-        renderer='horus:templates/edit_profile.mako')
+                 renderer='horus:templates/edit_profile.mako')
     def edit_profile(self):
         if self.enabled is False:
             return HTTPNotImplemented()
@@ -571,13 +577,13 @@ class ProfileController(BaseController):
             email = user.email
 
             return {
-                    'form': self.form.render(
-                        appstruct= dict(
-                            Username=username,
-                            Email=email if email else '',
+                'form': self.form.render(
+                    appstruct= dict(
+                        Username=username,
+                        Email=email if email else '',
                         )
-                    )
-                }
+                )
+            }
         elif self.request.method == 'POST':
             try:
                 controls = self.request.POST.items()
