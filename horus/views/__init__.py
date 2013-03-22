@@ -166,9 +166,9 @@ class AuthController(BaseController):
             username = captured['Username']
             password = captured['Password']
 
-            user_account = self.UserAccount.get_by_email_password(self.request, username, password)
+            user_account = self.UserAccount.get_by_username_or_email(self.request, username, username)
 
-            if user_account:
+            if user_account and self.UserAccount.validate_user(user_account, password):
                 if not self.allow_inactive_login:
                     if self.require_activation:
                         # facebook, google... account is always active, we check for the activation
