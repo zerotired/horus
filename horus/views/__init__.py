@@ -1,9 +1,10 @@
+from pyramid.renderers      import render
 from pyramid.view           import view_config
 from pyramid.url            import route_url
 from pyramid.security       import remember
 from pyramid.security       import forget
 from pyramid.security       import NO_PERMISSION_REQUIRED
-from pyramid.httpexceptions import HTTPFound, HTTPNotImplemented
+from pyramid.httpexceptions import HTTPFound, HTTPNotImplemented, HTTPSeeOther
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.settings       import asbool
 
@@ -29,12 +30,11 @@ from horus.events           import LoggedInEvent
 from horus.events           import VelruseAccountCreatedEvent
 from horus.events           import VelruseAccountLoggedInEvent
 from hem.db                 import get_session
-from horus.lib              import generate_velruse_forms
+from horus.lib              import generate_velruse_forms, tsf
 from horus.lib              import openid_from_token
 from horus.lib              import translate
 
 import deform
-import pystache
 
 
 import logging
@@ -77,9 +77,11 @@ def authenticated(request, user_account, new_account=False):
     return HTTPFound(location=login_redirect_view, headers=headers)
 
 def create_activation(request, user_account, route_name='horus_activate',
-                      template=None, subject=None, body=None, send_mail=True):
-    template = template and template or translate(u"Please activate your e-mail address by visiting {{ link }}", request)
-    subject = subject and subject or translate(u"Please activate your e-mail address!", request)
+                      template=None, subject=None, send_activation_mail=True):
+
+    if not template:
+        template = 'horus:templates/mail/activation.mako'
+    subject = subject and subject or u"Itemfire: " + request.translate(u'Please activate your e-mail address!')
     db = get_session(request)
     Activation = request.registry.getUtility(IHorusActivationClass)
     activation = Activation()
@@ -89,24 +91,30 @@ def create_activation(request, user_account, route_name='horus_activate',
 
     db.flush()
 
-    if send_mail:
-        if body is None:
-            body = pystache.render(template,
-                                   {
-                                       'link': request.route_url(route_name, user_account_id=user_account.id, code=user_account.activation.code)
-                                   }
-            )
+    if send_activation_mail:
 
-        subject = subject
+        tpldata = {
+            'recipient_name': user_account.email,
+            'link': request.route_url(route_name, user_account_id=user_account.id, code=user_account.activation.code),
+            }
 
-        message = Message(subject=subject, recipients=[user_account.email], body=body)
+        body = render(template, tpldata, request)
 
-        mailer = get_mailer(request)
-        if request.registry.settings.get('mail.queue_path') is not None:
-            mailer.send_to_queue(message)
-        else:
-            mailer.send(message)
+        send_mail(request, subject=subject, recipients=[user_account.email], html=body)
 
+
+def send_mail(request, **kwargs):
+    """
+    Helper for sending mails, all kwargs are passed through to the `Message` object
+    :param kwargs:
+    :return:
+    """
+    mailer = get_mailer(request)
+    message = Message(**kwargs)
+    if request.registry.settings.get('mail.queue_path') is not None:
+        mailer.send_to_queue(message)
+    else:
+        mailer.send(message)
 
 class BaseController(object):
     @property
@@ -292,6 +300,7 @@ class ForgotPasswordController(BaseController):
         self.require_activation = asbool(self.settings.get('horus.require_activation', True))
         self.forgot_password_redirect_view = route_url(self.settings.get('horus.forgot_password_redirect', 'index'), request)
         self.reset_password_redirect_view = route_url(self.settings.get('horus.reset_password_redirect', 'index'), request)
+        self.mail_template = "horus:templates/mail/reset_password.mako"
 
     @view_config(route_name='horus_forgot_password', renderer='horus:templates/forgot_password.mako')
     def forgot_password(self):
@@ -316,9 +325,7 @@ class ForgotPasswordController(BaseController):
             except deform.ValidationFailure, e:
                 return {'form': e.render(), 'errors': e.error.children}
 
-            email = captured['Email']
-
-            user_account = self.UserAccount.get_by_email(self.request, email)
+            user_account = self.UserAccount.get_by_email(self.request, captured['Email'])
 
             if not user_account:
                 self.request.session.flash(self.translate(u"E-mail not found"), 'success')
@@ -326,25 +333,18 @@ class ForgotPasswordController(BaseController):
 
             if self.require_activation:
                 # activation is used for beeing safe, no activation mail will be sent
-                create_activation(self.request, user_account, send_mail = False)
+                create_activation(self.request, user_account, send_activation_mail = False)
 
-            mailer = get_mailer(self.request)
-            body = pystache.render(self.translate(u"Someone has tried to reset your password, if this was you click here: {{ link }}"),
-                                   {
-                                       'link': route_url('horus_reset_password', self.request, code=user_account.activation.code)
-                                   }
-            )
+            # Send a mail with a link to reset the password
+            subject = self.translate(u"Did You requested to reset your password?")
+            tpldata = {
+                'recipient_name': user_account.email,
+                'link': route_url('horus_reset_password', self.request, code=user_account.activation.code)
+                }
+            body = render(self.mail_template, tpldata, self.request)
+            send_mail(self.request, subject=subject, recipients=[user_account.email], html=body)
 
-            subject = self.translate(u"Do you want to reset your password?")
-
-            message = Message(subject=subject, recipients=[user_account.email], body=body)
-            if self.request.registry.settings.get('mail.queue_path') is not None:
-                mailer.send_to_queue(message)
-            else:
-                mailer.send(message)
-
-        # we don't want to say "E-mail not registered" or anything like that
-        # because it gives spammers context
+        # "E-mail not registered" gives spammer context
         self.request.session.flash(self.translate(u"Please check your e-mail to reset your password."), 'success')
         return HTTPFound(location=self.reset_password_redirect_view)
 
@@ -415,6 +415,7 @@ class RegisterController(BaseController):
         self.require_activation = asbool(self.settings.get('horus.require_activation', True))
         self.allow_registration = asbool(self.settings.get('horus.allow_registration', True))
         self.login_after_activation = asbool(self.settings.get('horus.login_after_activation', False))
+        self.mail_template = "horus:templates/mail/activation.mako"
 
         if self.require_activation:
             self.mailer = get_mailer(request)
@@ -422,44 +423,45 @@ class RegisterController(BaseController):
     @view_config(route_name='horus_register', renderer='horus:templates/register.mako')
     def register(self):
         if self.allow_registration is False:
-            return HTTPNotImplemented()
-
-        if self.request.method == 'GET':
             if self.request.user_account:
                 return HTTPFound(location=self.register_redirect_view)
+            self.request.session.flash(self.request.translate(u"Direct signup is not supported yet, please login with facebook meanwhile. Sorry for that."), 'error')
+            r = dict()
 
-            return {'form': self.form.render()}
-        elif self.request.method == 'POST':
+        else:
 
-            try:
-                controls = self.request.POST.items()
-                captured = self.form.validate(controls)
-            except deform.ValidationFailure, e:
-                return {'form': e.render(), 'errors': e.error.children}
+            if self.request.method == 'GET':
+                if self.request.user_account:
+                    return HTTPFound(location=self.register_redirect_view)
 
-            email = captured['Email']
-            if not hasattr(captured,'Username'):
-                captured['Username'] = captured['Email']
-            username = captured['Username'].lower()
-            password = captured['Password']
+                return {'form': self.form.render()}
+            elif self.request.method == 'POST':
 
-            user_account = self.UserAccount.get_by_username_or_email(self.request,
-                                                                     username, email
-            )
+                try:
+                    controls = self.request.POST.items()
+                    captured = self.form.validate(controls)
+                except deform.ValidationFailure, e:
+                    return {'form': e.render(), 'errors': e.error.children}
 
-            autologin = asbool(self.settings.get('horus.autologin', False))
+                email = captured['Email']
+                if not hasattr(captured,'Username'):
+                    captured['Username'] = captured['Email']
+                username = captured['Username'].lower()
+                password = captured['Password']
 
-            if user_account:
-                if user_account.username == username:
-                    self.request.session.flash(self.translate(u"That username is already used."), 'error')
-                elif user_account.email == email:
-                    self.request.session.flash(self.translate(u"That e-mail is already used."), 'error')
+                user_account = self.UserAccount.get_by_username_or_email(self.request, username, email)
 
-                return {'form': self.form.render(self.request.POST)}
+                autologin = asbool(self.settings.get('horus.autologin', False))
 
-            activation = None
+                if user_account:
+                    if user_account.username == username:
+                        self.request.session.flash(self.request.translate(u"That username is already used."), 'error')
+                    elif user_account.email == email:
+                        self.request.session.flash(self.request.translate(u"That e-mail is already used."), 'error')
 
-            try:
+                    return {'form': self.form.render(self.request.POST), 'page_title' : self.request.translate(u"Signup")}
+
+                activation = None
 
                 user = self.User(active=False, email=email)
                 user_account = self.UserAccount(username=username, email=email, password=password)
@@ -467,31 +469,30 @@ class RegisterController(BaseController):
 
                 self.db.add(user)
 
+                self.request.registry.notify(
+                    NewRegistrationEvent(self.request, user_account, activation,
+                        captured)
+                )
 
                 if self.require_activation:
                     # SEND EMAIL ACTIVATION
-                    create_activation(self.request, user_account)
-                    self.request.session.flash(self.translate(u"Please check your E-mail for an activation link"), 'success')
+                    create_activation(self.request, user_account,
+                        subject=u"Itemfire: " + self.request.translate(u"Please activate your e-mail address!"),
+                        template=self.mail_template
+                    )
+                    return HTTPSeeOther(location=self.register_redirect_view)
                 else:
                     if not autologin:
-                        self.request.session.flash(self.translate(u"You have been registered, you may login now!"), 'success')
+                        self.request.session.flash(self.request.translate(u"You have been registered, you may login now!"), 'success')
 
-            except Exception as exc:
-                self.request.session.flash(exc.message, 'error')
-                return {'form': self.form.render()}
+                if autologin:
+                    self.db.flush()
+                    return authenticated(self.request, user_account)
 
-            self.request.registry.notify(
-                NewRegistrationEvent(self.request, user_account, activation,
-                                     captured)
-            )
+                return HTTPFound(location=self.register_redirect_view)
 
+        return r
 
-            if autologin:
-                self.db.flush()
-
-                return authenticated(self.request, user_account)
-
-            return HTTPFound(location=self.register_redirect_view)
 
     @view_config(route_name='horus_activate')
     def activate(self):
