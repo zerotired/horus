@@ -468,6 +468,7 @@ class RegisterController(BaseController):
                 user.accounts.append(user_account)
 
                 self.db.add(user)
+                self.db.flush()
 
                 self.request.registry.notify(
                     NewRegistrationEvent(self.request, user_account, activation,
@@ -486,7 +487,6 @@ class RegisterController(BaseController):
                         self.request.session.flash(self.request.translate(u"You have been registered, you may login now!"), 'success')
 
                 if autologin:
-                    self.db.flush()
                     return authenticated(self.request, user_account)
 
                 return HTTPFound(location=self.register_redirect_view)
