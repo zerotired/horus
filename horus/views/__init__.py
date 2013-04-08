@@ -470,17 +470,19 @@ class RegisterController(BaseController):
                 self.db.add(user)
                 self.db.flush()
 
+                if self.require_activation:
+                    # SEND EMAIL ACTIVATION
+                    create_activation(self.request, user_account,
+                                      subject=u"Itemfire: " + self.request.translate(u"Please activate your e-mail address!"),
+                                      template=self.mail_template
+                    )
+
                 self.request.registry.notify(
-                    NewRegistrationEvent(self.request, user_account, activation,
+                    NewRegistrationEvent(self.request, user_account, user_account.activation,
                         captured)
                 )
 
                 if self.require_activation:
-                    # SEND EMAIL ACTIVATION
-                    create_activation(self.request, user_account,
-                        subject=u"Itemfire: " + self.request.translate(u"Please activate your e-mail address!"),
-                        template=self.mail_template
-                    )
                     return HTTPSeeOther(location=self.register_redirect_view)
                 else:
                     if not autologin:
