@@ -98,6 +98,6 @@ def includeme(config):
             config.registry.registerUtility(SubmitForm, form)
 
     config.include('horus.routes')
-    config.scan()
+    config.scan(ignore=['.test', '.testing', '.tests'])
 
     config.add_translation_dirs('horus:locale/')
